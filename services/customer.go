@@ -6,20 +6,26 @@ import (
 	"paylater/db/sqlc"
 )
 
+// CustomerService contains all business logic related to customers.
 type CustomerService struct {
 	queries *sqlc.Queries
 }
 
-// Constructor
+// NewCustomerService creates a new CustomerService.
 func NewCustomerService(q *sqlc.Queries) *CustomerService {
 	return &CustomerService{
 		queries: q,
 	}
 }
 
-// Create Customer
-func (s *CustomerService) CreateCustomer(ctx context.Context, arg sqlc.CreateCustomerParams) error {
-	_, err := s.queries.CreateCustomer(ctx, arg)
+// CreateCustomer creates a new customer in the database.
+func (s *CustomerService) CreateCustomer(
+	ctx context.Context,
+	params sqlc.CreateCustomerParams,
+) error {
+
+	// Call SQLC generated CreateCustomer query.
+	_, err := s.queries.CreateCustomer(ctx, params)
 	if err != nil {
 		return err
 	}
@@ -27,22 +33,17 @@ func (s *CustomerService) CreateCustomer(ctx context.Context, arg sqlc.CreateCus
 	return nil
 }
 
-// Get Customer by ID
-func (s *CustomerService) GetCustomer(ctx context.Context, id int64) (sqlc.Customer, error) {
-	return s.queries.GetCustomer(ctx, id)
-}
+// ListCustomers retrieves all customers from the database.
+func (s *CustomerService) ListCustomers(
+	ctx context.Context,
+) ([]sqlc.Customer, error) {
 
-// Get All Customers
-func (s *CustomerService) ListCustomers(ctx context.Context) ([]sqlc.Customer, error) {
-	return s.queries.ListCustomers(ctx)
-}
+	// Call the SQLC generated ListCustomers query.
+	customers, err := s.queries.ListCustomers(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// Update Customer
-func (s *CustomerService) UpdateCustomer(ctx context.Context, arg sqlc.UpdateCustomerParams) error {
-	return s.queries.UpdateCustomer(ctx, arg)
-}
-
-// Delete Customer
-func (s *CustomerService) DeleteCustomer(ctx context.Context, id int64) error {
-	return s.queries.DeleteCustomer(ctx, id)
+	// Return all customers to the handler.
+	return customers, nil
 }

@@ -1,4 +1,3 @@
-
 package services
 
 import (
@@ -7,52 +6,70 @@ import (
 	"paylater/db/sqlc"
 )
 
+// MerchantService contains the business logic
+// related to merchants.
 type MerchantService struct {
 	queries *sqlc.Queries
 }
 
+// NewMerchantService creates a new MerchantService.
+//
+// The SQLC Queries object is passed here so the
+// service can communicate with the MySQL database.
 func NewMerchantService(queries *sqlc.Queries) *MerchantService {
 	return &MerchantService{
 		queries: queries,
 	}
 }
 
-// Create merchant
+// ==========================================================
+// Create Merchant
+// ==========================================================
+
+// CreateMerchant creates/onboards a new merchant.
+//
+// The merchant information comes from the handler
+// and is passed to the SQLC CreateMerchant query.
 func (s *MerchantService) CreateMerchant(
 	ctx context.Context,
 	params sqlc.CreateMerchantParams,
 ) error {
+
+	// Call the SQLC generated CreateMerchant function.
 	_, err := s.queries.CreateMerchant(ctx, params)
-	return err
+
+	// If MySQL returns an error, send it back
+	// to the handler.
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// Get merchant by ID
-func (s *MerchantService) GetMerchant(
-	ctx context.Context,
-	id int64,
-) (sqlc.Merchant, error) {
-	return s.queries.GetMerchant(ctx, id)
-}
+// ==========================================================
+// Update Merchant Commission
+// ==========================================================
 
-// Get all merchants
-func (s *MerchantService) ListMerchants(
+// UpdateMerchantCommission updates only the commission
+// percentage of an existing merchant.
+//
+// Example:
+// Merchant ID = 1
+// Old commission = 5%
+// New commission = 7%
+func (s *MerchantService) UpdateMerchantCommission(
 	ctx context.Context,
-) ([]sqlc.Merchant, error) {
-	return s.queries.ListMerchants(ctx)
-}
-
-// Update merchant
-func (s *MerchantService) UpdateMerchant(
-	ctx context.Context,
-	params sqlc.UpdateMerchantParams,
+	params sqlc.UpdateMerchantCommissionParams,
 ) error {
-	return s.queries.UpdateMerchant(ctx, params)
-}
 
-// Delete merchant
-func (s *MerchantService) DeleteMerchant(
-	ctx context.Context,
-	id int64,
-) error {
-	return s.queries.DeleteMerchant(ctx, id)
+	// Call the SQLC generated query.
+	err := s.queries.UpdateMerchantCommission(ctx, params)
+
+	// Return the error if the database update fails.
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

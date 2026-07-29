@@ -1,29 +1,38 @@
+-- ===========================
+-- Merchant Queries
+-- ===========================
+
+
+-- ===========================
+-- Create Merchant
+-- ===========================
+-- Creates/onboards a new merchant.
+--
+-- SQLC generates:
+-- CreateMerchant(ctx, params)
+
 -- name: CreateMerchant :execresult
 INSERT INTO merchants (
     merchant_name,
     phone_number,
     onboarding,
     commission
-) VALUES (?, ?, ?, ?);
+)
+VALUES (?, ?, ?, ?);
 
--- name: GetMerchant :one
-SELECT *
-FROM merchants
-WHERE id = ?;
 
--- name: ListMerchants :many
-SELECT *
-FROM merchants;
+-- ===========================
+-- Update Merchant Commission
+-- ===========================
+-- Updates only the commission percentage
+-- for an existing merchant.
+--
+-- Merchant is identified using its ID.
+--
+-- SQLC generates:
+-- UpdateMerchantCommission(ctx, params)
 
--- name: UpdateMerchant :exec
+-- name: UpdateMerchantCommission :exec
 UPDATE merchants
-SET
-    merchant_name = ?,
-    phone_number = ?,
-    onboarding = ?,
-    commission = ?
-WHERE id = ?;
-
--- name: DeleteMerchant :exec
-DELETE FROM merchants
+SET commission = ?
 WHERE id = ?;

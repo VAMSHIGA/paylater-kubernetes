@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,42 +10,62 @@ import (
 	"paylater/services"
 )
 
-// Request body for POST /transactions
+// ==========================================================
+// Request Structure
+// ==========================================================
+
+// CreateTransactionRequest represents the JSON body
+// received when a customer makes a PayLater purchase.
 type CreateTransactionRequest struct {
-	CustomerID      int64  `json:"customer_id"`
-	MerchantID      int64  `json:"merchant_id"`
-	Amount          string `json:"amount"`
-	Commission      string `json:"commission"`
-	TransactionDate string `json:"transaction_date"`
+	CustomerID      int64  `json:"customer_id" binding:"required"`
+	MerchantID      int64  `json:"merchant_id" binding:"required"`
+	Amount          string `json:"amount" binding:"required"`
+	Commission      string `json:"commission" binding:"required"`
+	TransactionDate string `json:"transaction_date" binding:"required"`
 }
 
-// Request body for PUT /transactions/:id
-type UpdateTransactionRequest struct {
-	CustomerID      int64  `json:"customer_id"`
-	MerchantID      int64  `json:"merchant_id"`
-	Amount          string `json:"amount"`
-	Commission      string `json:"commission"`
-	TransactionDate string `json:"transaction_date"`
-}
+// ==========================================================
+// Transaction Handler
+// ==========================================================
 
+// TransactionHandler handles transaction-related HTTP requests.
 type TransactionHandler struct {
 	service *services.TransactionService
 }
 
-// Create Transaction Handler
+// NewTransactionHandler creates a new TransactionHandler.
 func NewTransactionHandler(
 	service *services.TransactionService,
 ) *TransactionHandler {
+
 	return &TransactionHandler{
 		service: service,
 	}
 }
 
+// ==========================================================
 // POST /transactions
+// ==========================================================
+
+// CreateTransaction creates a new PayLater transaction.
+//
+// Example request:
+//
+// {
+//     "customer_id": 1,
+//     "merchant_id": 1,
+//     "amount": "500.00",
+//     "commission": "5.00",
+//     "transaction_date": "2026-07-29"
+// }
 func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
+
+	// ------------------------------------------------------
+	// STEP 1: Read JSON Request
+	// ------------------------------------------------------
+
 	var req CreateTransactionRequest
 
-	// Read JSON body
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -54,19 +73,31 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	// Convert date string into time.Time
+	// ------------------------------------------------------
+	// STEP 2: Convert Transaction Date
+	// ------------------------------------------------------
+	// API receives the date as:
+	//
+	// "2026-07-29"
+	//
+	// MySQL DATE is represented by time.Time in SQLC.
+
 	transactionDate, err := time.Parse(
 		"2006-01-02",
 		req.TransactionDate,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "transaction_date must be YYYY-MM-DD",
+			"error": "transaction_date must be in YYYY-MM-DD format",
 		})
 		return
 	}
 
-	// Convert request into SQLc parameters
+	// ------------------------------------------------------
+	// STEP 3: Prepare SQLC Parameters
+	// ------------------------------------------------------
+
 	params := sqlc.CreateTransactionParams{
 		CustomerID:      req.CustomerID,
 		MerchantID:      req.MerchantID,
@@ -75,164 +106,27 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		TransactionDate: transactionDate,
 	}
 
-	// Call Service
+	// ------------------------------------------------------
+	// STEP 4: Call Transaction Service
+	// ------------------------------------------------------
+
 	err = h.service.CreateTransaction(
 		c.Request.Context(),
 		params,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
+
+	// ------------------------------------------------------
+	// STEP 5: Return Success Response
+	// ------------------------------------------------------
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Transaction created successfully",
-	})
-}
-
-// GET /transactions
-func (h *TransactionHandler) ListTransactions(c *gin.Context) {
-	transactions, err := h.service.ListTransactions(
-		c.Request.Context(),
-	)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, transactions)
-}
-
-// GET /transactions/:id
-func (h *TransactionHandler) GetTransaction(c *gin.Context) {
-	id, err := strconv.ParseInt(
-		c.Param("id"),
-		10,
-		64,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid transaction ID",
-		})
-		return
-	}
-
-	transaction, err := h.service.GetTransaction(
-		c.Request.Context(),
-		id,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, transaction)
-}
-
-// PUT /transactions/:id
-func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
-	var req UpdateTransactionRequest
-
-	// Read JSON body
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	// Read transaction ID
-	id, err := strconv.ParseInt(
-		c.Param("id"),
-		10,
-		64,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid transaction ID",
-		})
-		return
-	}
-
-	// Convert date string into time.Time
-	transactionDate, err := time.Parse(
-		"2006-01-02",
-		req.TransactionDate,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "transaction_date must be YYYY-MM-DD",
-		})
-		return
-	}
-
-	// Convert request into SQLc parameters
-	params := sqlc.UpdateTransactionParams{
-		CustomerID:      req.CustomerID,
-		MerchantID:      req.MerchantID,
-		Amount:          req.Amount,
-		Commission:      req.Commission,
-		TransactionDate: transactionDate,
-		ID:              id,
-	}
-
-	// Call Service
-	err = h.service.UpdateTransaction(
-		c.Request.Context(),
-		params,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Transaction updated successfully",
-	})
-}
-
-// DELETE /transactions/:id
-func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
-	id, err := strconv.ParseInt(
-		c.Param("id"),
-		10,
-		64,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid transaction ID",
-		})
-		return
-	}
-
-	err = h.service.DeleteTransaction(
-		c.Request.Context(),
-		id,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Transaction deleted successfully",
 	})
 }

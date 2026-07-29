@@ -6,45 +6,52 @@ import (
 	"paylater/db/sqlc"
 )
 
+// PaybackService contains the business logic
+// related to customer repayments.
 type PaybackService struct {
 	queries *sqlc.Queries
 }
 
-// Create Payback Service
-func NewPaybackService(queries *sqlc.Queries) *PaybackService {
+// NewPaybackService creates a new PaybackService.
+//
+// The SQLC Queries object is passed to this service
+// so it can communicate with the MySQL database.
+func NewPaybackService(
+	queries *sqlc.Queries,
+) *PaybackService {
+
 	return &PaybackService{
 		queries: queries,
 	}
 }
 
+// ==========================================================
 // Create Payback
+// ==========================================================
+
+// CreatePayback creates a new repayment record.
+//
+// A payback happens when a customer pays back
+// some amount they owe.
+//
+// Payback contains:
+// - Customer ID
+// - Repayment amount
+// - Payment date
 func (s *PaybackService) CreatePayback(
 	ctx context.Context,
 	params sqlc.CreatePaybackParams,
 ) error {
+
+	// Call the SQLC generated CreatePayback query.
 	_, err := s.queries.CreatePayback(ctx, params)
-	return err
-}
 
-// Get Payback by ID
-func (s *PaybackService) GetPayback(
-	ctx context.Context,
-	id int64,
-) (sqlc.Payback, error) {
-	return s.queries.GetPayback(ctx, id)
-}
+	// If the database operation fails,
+	// return the error to the handler.
+	if err != nil {
+		return err
+	}
 
-// Get All Paybacks
-func (s *PaybackService) ListPaybacks(
-	ctx context.Context,
-) ([]sqlc.Payback, error) {
-	return s.queries.ListPaybacks(ctx)
-}
-
-// Delete Payback
-func (s *PaybackService) DeletePayback(
-	ctx context.Context,
-	id int64,
-) error {
-	return s.queries.DeletePayback(ctx, id)
+	// No error means the payback was created successfully.
+	return nil
 }

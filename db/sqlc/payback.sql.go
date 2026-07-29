@@ -12,11 +12,15 @@ import (
 )
 
 const createPayback = `-- name: CreatePayback :execresult
+
+
+
 INSERT INTO paybacks (
     customer_id,
     amount,
     payment_date
-) VALUES (?, ?, ?)
+)
+VALUES (?, ?, ?)
 `
 
 type CreatePaybackParams struct {
@@ -25,67 +29,23 @@ type CreatePaybackParams struct {
 	PaymentDate time.Time
 }
 
+// ===========================
+// Payback Queries
+// ===========================
+// Contains SQL queries related to
+// customer repayments in the PayLater system.
+// ===========================
+// Create Payback
+// ===========================
+// Creates a repayment record when a customer
+// pays back an amount they owe.
+//
+// customer_id  -> Customer making the repayment
+// amount       -> Amount customer is paying back
+// payment_date -> Date when repayment happened
+//
+// SQLC generates:
+// CreatePayback(ctx, params)
 func (q *Queries) CreatePayback(ctx context.Context, arg CreatePaybackParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, createPayback, arg.CustomerID, arg.Amount, arg.PaymentDate)
-}
-
-const deletePayback = `-- name: DeletePayback :exec
-DELETE FROM paybacks
-WHERE id = ?
-`
-
-func (q *Queries) DeletePayback(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deletePayback, id)
-	return err
-}
-
-const getPayback = `-- name: GetPayback :one
-SELECT id, customer_id, amount, payment_date
-FROM paybacks
-WHERE id = ?
-`
-
-func (q *Queries) GetPayback(ctx context.Context, id int64) (Payback, error) {
-	row := q.db.QueryRowContext(ctx, getPayback, id)
-	var i Payback
-	err := row.Scan(
-		&i.ID,
-		&i.CustomerID,
-		&i.Amount,
-		&i.PaymentDate,
-	)
-	return i, err
-}
-
-const listPaybacks = `-- name: ListPaybacks :many
-SELECT id, customer_id, amount, payment_date
-FROM paybacks
-`
-
-func (q *Queries) ListPaybacks(ctx context.Context) ([]Payback, error) {
-	rows, err := q.db.QueryContext(ctx, listPaybacks)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Payback
-	for rows.Next() {
-		var i Payback
-		if err := rows.Scan(
-			&i.ID,
-			&i.CustomerID,
-			&i.Amount,
-			&i.PaymentDate,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

@@ -11,64 +11,61 @@ import (
 )
 
 const createCustomer = `-- name: CreateCustomer :execresult
+
+
+
 INSERT INTO customers (
     name,
     email,
-    credit_limit,
-    repay
-) VALUES (?, ?, ?, ?)
+    credit_limit
+)
+VALUES (?, ?, ?)
 `
 
 type CreateCustomerParams struct {
 	Name        string
 	Email       string
 	CreditLimit string
-	Repay       sql.NullString
 }
 
+// ===========================
+// Customer Queries
+// ===========================
+// Contains SQL queries used by SQLC
+// for customer-related database operations.
+// ===========================
+// Create Customer
+// ===========================
+// Creates a new customer with:
+// name, email and credit limit.
+//
+// SQLC generates:
+// CreateCustomer(ctx, params)
 func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createCustomer,
-		arg.Name,
-		arg.Email,
-		arg.CreditLimit,
-		arg.Repay,
-	)
-}
-
-const deleteCustomer = `-- name: DeleteCustomer :exec
-DELETE FROM customers
-WHERE id = ?
-`
-
-func (q *Queries) DeleteCustomer(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteCustomer, id)
-	return err
-}
-
-const getCustomer = `-- name: GetCustomer :one
-SELECT id, name, email, credit_limit, repay
-FROM customers
-WHERE id = ?
-`
-
-func (q *Queries) GetCustomer(ctx context.Context, id int64) (Customer, error) {
-	row := q.db.QueryRowContext(ctx, getCustomer, id)
-	var i Customer
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.CreditLimit,
-		&i.Repay,
-	)
-	return i, err
+	return q.db.ExecContext(ctx, createCustomer, arg.Name, arg.Email, arg.CreditLimit)
 }
 
 const listCustomers = `-- name: ListCustomers :many
-SELECT id, name, email, credit_limit, repay
+
+SELECT
+    id,
+    name,
+    email,
+    credit_limit
 FROM customers
+ORDER BY id ASC
 `
 
+// ===========================
+// List Customers
+// ===========================
+// Retrieves all customers from the database.
+//
+// Customers are returned in ascending order
+// based on their ID.
+//
+// SQLC generates:
+// ListCustomers(ctx)
 func (q *Queries) ListCustomers(ctx context.Context) ([]Customer, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomers)
 	if err != nil {
@@ -83,7 +80,6 @@ func (q *Queries) ListCustomers(ctx context.Context) ([]Customer, error) {
 			&i.Name,
 			&i.Email,
 			&i.CreditLimit,
-			&i.Repay,
 		); err != nil {
 			return nil, err
 		}
@@ -96,33 +92,4 @@ func (q *Queries) ListCustomers(ctx context.Context) ([]Customer, error) {
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateCustomer = `-- name: UpdateCustomer :exec
-UPDATE customers
-SET
-    name = ?,
-    email = ?,
-    credit_limit = ?,
-    repay = ?
-WHERE id = ?
-`
-
-type UpdateCustomerParams struct {
-	Name        string
-	Email       string
-	CreditLimit string
-	Repay       sql.NullString
-	ID          int64
-}
-
-func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) error {
-	_, err := q.db.ExecContext(ctx, updateCustomer,
-		arg.Name,
-		arg.Email,
-		arg.CreditLimit,
-		arg.Repay,
-		arg.ID,
-	)
-	return err
 }

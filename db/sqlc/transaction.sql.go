@@ -12,13 +12,17 @@ import (
 )
 
 const createTransaction = `-- name: CreateTransaction :execresult
+
+
+
 INSERT INTO transactions (
     customer_id,
     merchant_id,
     amount,
     commission,
     transaction_date
-) VALUES (?, ?, ?, ?, ?)
+)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type CreateTransactionParams struct {
@@ -29,6 +33,25 @@ type CreateTransactionParams struct {
 	TransactionDate time.Time
 }
 
+// ===========================
+// Transaction Queries
+// ===========================
+// Contains SQL queries related to PayLater transactions.
+// ===========================
+// Create Transaction
+// ===========================
+// Creates a new PayLater transaction when a customer
+// purchases something from a merchant.
+//
+// Stores:
+// customer_id      -> Customer making the purchase
+// merchant_id      -> Merchant where purchase happened
+// amount           -> Purchase amount
+// commission       -> Merchant commission for transaction
+// transaction_date -> Date of purchase
+//
+// SQLC generates:
+// CreateTransaction(ctx, params)
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, createTransaction,
 		arg.CustomerID,
@@ -37,101 +60,4 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.Commission,
 		arg.TransactionDate,
 	)
-}
-
-const deleteTransaction = `-- name: DeleteTransaction :exec
-DELETE FROM transactions
-WHERE id = ?
-`
-
-func (q *Queries) DeleteTransaction(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteTransaction, id)
-	return err
-}
-
-const getTransaction = `-- name: GetTransaction :one
-SELECT id, customer_id, merchant_id, amount, commission, transaction_date
-FROM transactions
-WHERE id = ?
-`
-
-func (q *Queries) GetTransaction(ctx context.Context, id int64) (Transaction, error) {
-	row := q.db.QueryRowContext(ctx, getTransaction, id)
-	var i Transaction
-	err := row.Scan(
-		&i.ID,
-		&i.CustomerID,
-		&i.MerchantID,
-		&i.Amount,
-		&i.Commission,
-		&i.TransactionDate,
-	)
-	return i, err
-}
-
-const listTransactions = `-- name: ListTransactions :many
-SELECT id, customer_id, merchant_id, amount, commission, transaction_date
-FROM transactions
-`
-
-func (q *Queries) ListTransactions(ctx context.Context) ([]Transaction, error) {
-	rows, err := q.db.QueryContext(ctx, listTransactions)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Transaction
-	for rows.Next() {
-		var i Transaction
-		if err := rows.Scan(
-			&i.ID,
-			&i.CustomerID,
-			&i.MerchantID,
-			&i.Amount,
-			&i.Commission,
-			&i.TransactionDate,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updateTransaction = `-- name: UpdateTransaction :exec
-UPDATE transactions
-SET
-    customer_id = ?,
-    merchant_id = ?,
-    amount = ?,
-    commission = ?,
-    transaction_date = ?
-WHERE id = ?
-`
-
-type UpdateTransactionParams struct {
-	CustomerID      int64
-	MerchantID      int64
-	Amount          string
-	Commission      string
-	TransactionDate time.Time
-	ID              int64
-}
-
-func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) error {
-	_, err := q.db.ExecContext(ctx, updateTransaction,
-		arg.CustomerID,
-		arg.MerchantID,
-		arg.Amount,
-		arg.Commission,
-		arg.TransactionDate,
-		arg.ID,
-	)
-	return err
 }

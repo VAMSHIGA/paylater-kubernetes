@@ -6,53 +6,53 @@ import (
 	"paylater/db/sqlc"
 )
 
+// TransactionService contains the business logic
+// related to PayLater transactions.
 type TransactionService struct {
 	queries *sqlc.Queries
 }
 
-// Create Transaction Service
-func NewTransactionService(queries *sqlc.Queries) *TransactionService {
+// NewTransactionService creates a new TransactionService.
+//
+// SQLC Queries is passed to the service so that
+// the service can communicate with the database.
+func NewTransactionService(
+	queries *sqlc.Queries,
+) *TransactionService {
+
 	return &TransactionService{
 		queries: queries,
 	}
 }
 
+// ==========================================================
 // Create Transaction
+// ==========================================================
+
+// CreateTransaction creates a new PayLater transaction.
+//
+// A transaction happens when a customer purchases
+// something from a merchant.
+//
+// Transaction contains:
+// - Customer ID
+// - Merchant ID
+// - Amount
+// - Commission
+// - Transaction Date
 func (s *TransactionService) CreateTransaction(
 	ctx context.Context,
 	params sqlc.CreateTransactionParams,
 ) error {
+
+	// Call the SQLC generated CreateTransaction query.
 	_, err := s.queries.CreateTransaction(ctx, params)
-	return err
-}
 
-// Get Transaction by ID
-func (s *TransactionService) GetTransaction(
-	ctx context.Context,
-	id int64,
-) (sqlc.Transaction, error) {
-	return s.queries.GetTransaction(ctx, id)
-}
+	// If database operation fails,
+	// return the error to the handler.
+	if err != nil {
+		return err
+	}
 
-// Get All Transactions
-func (s *TransactionService) ListTransactions(
-	ctx context.Context,
-) ([]sqlc.Transaction, error) {
-	return s.queries.ListTransactions(ctx)
-}
-
-// Update Transaction
-func (s *TransactionService) UpdateTransaction(
-	ctx context.Context,
-	params sqlc.UpdateTransactionParams,
-) error {
-	return s.queries.UpdateTransaction(ctx, params)
-}
-
-// Delete Transaction
-func (s *TransactionService) DeleteTransaction(
-	ctx context.Context,
-	id int64,
-) error {
-	return s.queries.DeleteTransaction(ctx, id)
+	return nil
 }

@@ -5,7 +5,6 @@
 package sqlc
 
 import (
-	"database/sql"
 	"time"
 )
 
@@ -14,7 +13,6 @@ type Customer struct {
 	Name        string
 	Email       string
 	CreditLimit string
-	Repay       sql.NullString
 }
 
 type Merchant struct {
@@ -39,4 +37,11 @@ type Transaction struct {
 	Amount          string
 	Commission      string
 	TransactionDate time.Time
+}
+
+type User struct {
+	ID           int64
+	Email        string
+	PasswordHash string
+	Role         string
 }

@@ -4,25 +4,92 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"paylater/handlers"
+	"paylater/middleware"
 )
 
-// TransactionRoutes registers all transaction endpoints
+// ==========================================================
+// Transaction Routes
+// ==========================================================
+// TransactionRoutes registers all transaction-related APIs.
+//
+// Transactions are protected using:
+//
+// 1. AuthMiddleware()
+//    Checks whether the request contains a valid JWT.
+//
+// 2. AuthorizeRoles("admin", "customer")
+//    Allows only admin and customer roles.
+//
+// Request Flow:
+//
+// Request
+//    ↓
+// AuthMiddleware()
+//    ↓
+// AuthorizeRoles()
+//    ↓
+// Transaction Handler
+//    ↓
+// Transaction Service
+//    ↓
+// SQLC
+//    ↓
+// MySQL
+//
 func TransactionRoutes(
 	router *gin.Engine,
 	handler *handlers.TransactionHandler,
 ) {
-	// Create transaction
-	router.POST("/transactions", handler.CreateTransaction)
 
-	// Get all transactions
-	router.GET("/transactions", handler.ListTransactions)
+	// ======================================================
+	// Create Transaction
+	// ======================================================
+	// API:
+	//
+	// POST /transactions
+	//
+	// Purpose:
+	// Creates a new PayLater purchase transaction.
+	//
+	// Example:
+	//
+	// Customer purchases something from a merchant
+	// using their PayLater credit.
+	//
+	// Security:
+	//
+	// JWT Required  : YES
+	// Allowed Roles : admin, customer
+	//
+	// Flow:
+	//
+	// POST /transactions
+	//        ↓
+	// Check JWT
+	//        ↓
+	// Check Role
+	//        ↓
+	// CreateTransaction Handler
+	//
+	router.POST(
+		"/transactions",
 
-	// Get transaction by ID
-	router.GET("/transactions/:id", handler.GetTransaction)
+		// Authentication:
+		// Validate the JWT from:
+		//
+		// Authorization: Bearer <token>
+		middleware.AuthMiddleware(),
 
-	// Update transaction
-	router.PUT("/transactions/:id", handler.UpdateTransaction)
+		// Authorization:
+		// Admin and customer users are allowed
+		// to create transactions.
+		middleware.AuthorizeRoles(
+			"admin",
+			"customer",
+		),
 
-	// Delete transaction
-	router.DELETE("/transactions/:id", handler.DeleteTransaction)
+		// If authentication and authorization
+		// succeed, execute the transaction handler.
+		handler.CreateTransaction,
+	)
 }

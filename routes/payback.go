@@ -4,23 +4,108 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"paylater/handlers"
+	"paylater/middleware"
 )
 
-// PaybackRoutes registers all Payback endpoints
+// ==========================================================
+// Payback Routes
+// ==========================================================
+// PaybackRoutes registers all payback-related APIs.
+//
+// Payback APIs are protected using:
+//
+// 1. AuthMiddleware()
+//    Checks whether the request contains a valid JWT.
+//
+// 2. AuthorizeRoles("admin", "customer")
+//    Allows admin and customer users.
+//
+// Request Flow:
+//
+// Request
+//    ↓
+// AuthMiddleware()
+//    ↓
+// AuthorizeRoles()
+//    ↓
+// Payback Handler
+//    ↓
+// Payback Service
+//    ↓
+// SQLC
+//    ↓
+// MySQL
+//
 func PaybackRoutes(
 	router *gin.Engine,
 	handler *handlers.PaybackHandler,
 ) {
 
+	// ======================================================
 	// Create Payback
-	router.POST("/paybacks", handler.CreatePayback)
+	// ======================================================
+	// API:
+	//
+	// POST /paybacks
+	//
+	// Purpose:
+	// Creates a repayment when a customer pays back
+	// an amount they owe.
+	//
+	// Example:
+	//
+	// Customer purchased: 500.00
+	// Customer pays back: 500.00
+	//
+	// Security:
+	//
+	// JWT Required  : YES
+	// Allowed Roles : admin, customer
+	//
+	// Flow:
+	//
+	// POST /paybacks
+	//       ↓
+	// Check JWT
+	//       ↓
+	// Check Role
+	//       ↓
+	// CreatePayback Handler
+	//
+	router.POST(
+		"/paybacks",
 
-	// Get All Paybacks
-	router.GET("/paybacks", handler.ListPaybacks)
+		// ==================================================
+		// Authentication
+		// ==================================================
+		// Check the JWT received in:
+		//
+		// Authorization: Bearer <JWT_TOKEN>
+		//
+		// Invalid or missing JWT:
+		// HTTP 401 Unauthorized
+		middleware.AuthMiddleware(),
 
-	// Get Payback by ID
-	router.GET("/paybacks/:id", handler.GetPayback)
+		// ==================================================
+		// Authorization
+		// ==================================================
+		// Only these roles can create a payback:
+		//
+		// admin
+		// customer
+		//
+		// Valid JWT but wrong role:
+		// HTTP 403 Forbidden
+		middleware.AuthorizeRoles(
+			"admin",
+			"customer",
+		),
 
-	// Delete Payback by ID
-	router.DELETE("/paybacks/:id", handler.DeletePayback)
+		// ==================================================
+		// Handler
+		// ==================================================
+		// If authentication and authorization succeed,
+		// execute CreatePayback().
+		handler.CreatePayback,
+	)
 }
