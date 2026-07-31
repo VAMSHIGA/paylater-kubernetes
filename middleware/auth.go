@@ -49,7 +49,7 @@ import (
 //	YES → Continue to Handler
 //	NO  → Return 401 Unauthorized
 func AuthMiddleware() gin.HandlerFunc {
-
+// this fun gin run when request is received this function runs when Gin receives a request for a route using that middleware.
 	return func(c *gin.Context) {
 
 		// ==================================================
