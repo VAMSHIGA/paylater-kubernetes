@@ -1,3 +1,9 @@
+// Package db contains the legacy monolith MySQL connector.
+//
+// The API gateway no longer opens a database; each microservice connects via
+// paylater/shared/database to its own schema. This helper remains for local
+// tooling or a future cleanup of leftover monolith SQLC under db/sqlc.
+// Prefer shared/database for new service code.
 package db
 
 import (
@@ -10,6 +16,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// ConnectDB opens MySQL using DB_* environment variables from .env.
+//
+// Deprecated for runtime paths: the gateway does not call this after full
+// service extraction. Returns a ping-verified *sql.DB or an error.
 func ConnectDB() (*sql.DB, error) {
 
 	err := godotenv.Load()

@@ -1,514 +1,281 @@
 # PayLater Backend API
 
-A backend PayLater service built using **Go, Gin Framework, MySQL, SQLC, JWT Authentication, and Role-Based Authorization**.
+PayLater is a **Go microservices** backend for customer credit, merchant onboarding, PayLater purchases, repayments, and admin reporting.
 
-The application supports customer management, merchant management, PayLater transactions, repayments, reporting, authentication, and authorization.
-
----
-
-## 1. Technologies Used
-
-* Go (Golang)
-* Gin Framework
-* MySQL
-* SQLC
-* JWT
-* bcrypt
-* REST API
-* Postman
-* AWS EC2
-* Amazon RDS MySQL
-* Amazon CloudWatch
+Clients talk to a single **API gateway** on `:8080`. The gateway reverse-proxies each route group to the owning service. Cross-cutting concerns (config, MySQL helpers, JWT, auth middleware, JSON responses) live in the shared module `paylater/shared`.
 
 ---
 
-## 2. Project Architecture
-
-The project follows a layered monolithic architecture.
+## Architecture overview
 
 ```text
 Client / Postman
        |
        v
-Routes
+API Gateway (monolith main.go)  :8080
        |
-       v
-Middleware
-       |
-       v
-Handlers
-       |
-       v
-Services
-       |
-       v
-SQLC
-       |
-       v
-MySQL
+       +-- /auth/*              → Identity Service     :8081  (identity_db)
+       +-- /customers*          → Customer Service     :8082  (customer_db)
+       +-- /merchants*          → Merchant Service     :8083  (merchant_db)
+       +-- /transactions*       → Transaction Service  :8084  (transaction_db)
+       +-- /paybacks*           → Payback Service      :8085  (payback_db)
+       +-- /reports/*           → Reporting Service    :8086  (report_db snapshot)
 ```
+
+Each service follows the same layered layout:
+
+```text
+HTTP (Gin router + shared middleware)
+  → handler (validate + map HTTP)
+  → service (business rules)
+  → repository (SQLC)
+  → MySQL (service-owned database)
+```
+
+Services do not call each other over HTTP today. Cross-entity IDs are stored as plain values after the database split (no cross-DB foreign keys). Reporting reads a **snapshot** copy in `report_db` (not live CDC).
 
 ---
 
-## 3. Project Structure
+## Folder structure
 
 ```text
 paylater/
-│
+├── main.go                 # API gateway entry (proxies only)
+├── config/gateway.go       # Upstream service URL resolution
+├── routes/*_proxy.go       # Strangler reverse-proxy route groups
+├── shared/                 # Shared platform module (paylater/shared)
+│   ├── config/ database/ jwt/ middleware/
+│   ├── response/ validator/ utils/ constants/ errors/ logger/
+│   └── README.md
+├── identity-service/       # Auth register/login
+├── customer-service/       # Customer CRUD (admin)
+├── merchant-service/       # Merchant onboard + commission
+├── transaction-service/    # PayLater purchases
+├── payback-service/        # Customer repayments
+├── reporting-service/      # Admin aggregate reports
+├── db/                     # Legacy monolith SQLC (unused by gateway)
+├── middleware/ token/      # Legacy monolith auth (unused by gateway)
+└── README.md
+```
+
+### Typical service layout
+
+```text
+<service>/
+├── cmd/server/main.go      # Process entry; wires layers and listens
+├── internal/
+│   ├── handler/            # HTTP adapters
+│   ├── service/            # Domain logic
+│   ├── repository/         # SQLC wrappers
+│   └── router/             # Route groups + authz
 ├── db/
-│   ├── db.go
-│   ├── schema/
-│   │   └── schema.sql
-│   ├── queries/
-│   │   ├── auth.sql
-│   │   ├── customer.sql
-│   │   ├── merchant.sql
-│   │   ├── transaction.sql
-│   │   ├── payback.sql
-│   │   └── report.sql
-│   └── sqlc/
-│
-├── handlers/
-│   ├── auth.go
-│   ├── customer.go
-│   ├── merchant.go
-│   ├── transaction.go
-│   ├── payback.go
-│   └── report.go
-│
-├── services/
-│   ├── auth.go
-│   ├── customer.go
-│   ├── merchant.go
-│   ├── transaction.go
-│   ├── payback.go
-│   └── report.go
-│
-├── routes/
-│   ├── auth.go
-│   ├── customer.go
-│   ├── merchant.go
-│   ├── transaction.go
-│   ├── payback.go
-│   └── report.go
-│
-├── middleware/
-│   ├── auth.go
-│   └── authorization.go
-│
-├── token/
-│   └── jwt.go
-│
-├── main.go
-├── go.mod
-├── go.sum
-├── sqlc.yaml
+│   ├── schema/             # Owned MySQL schema
+│   ├── queries/            # Hand-written SQL for SQLC
+│   └── sqlc/               # Generated code — do not edit
+├── .env                    # Service DB + JWT_SECRET
 └── README.md
 ```
 
 ---
 
-## 4. Database Tables
+## Service responsibilities and ports
 
-The application uses the following MySQL tables:
+| Service | Port | Database | Responsibility |
+|---------|------|----------|----------------|
+| API Gateway | 8080 | none | Strangler reverse proxy; single client entry |
+| Identity | 8081 | `identity_db` | Register/login, bcrypt passwords, issue JWT |
+| Customer | 8082 | `customer_db` | Create/list customers (admin) |
+| Merchant | 8083 | `merchant_db` | Create merchants; update commission |
+| Transaction | 8084 | `transaction_db` | Record PayLater purchases |
+| Payback | 8085 | `payback_db` | Record customer repayments |
+| Reporting | 8086 | `report_db` | Admin reports from read-model snapshot |
 
-* `users`
-* `customers`
-* `merchants`
-* `transactions`
-* `paybacks`
-
----
-
-## 5. Authentication
-
-JWT is used for authentication.
-
-Users login using:
-
-```text
-POST /auth/login
-```
-
-After successful login, the API generates a JWT.
-
-The JWT contains:
-
-* User ID
-* Email
-* Role
-* Expiration time
-
-Protected APIs require:
-
-```text
-Authorization: Bearer <JWT_TOKEN>
-```
+Shared module: `shared/` (`replace paylater/shared => ../shared` in each service `go.mod`).
 
 ---
 
-## 6. Password Security
+## Shared platform
 
-Passwords are never stored as plain text.
+Documented in detail in [`shared/README.md`](shared/README.md).
 
-The application uses **bcrypt** for password hashing.
+| Package | Role |
+|---------|------|
+| `config` | Load port, DB, `JWT_SECRET` from env |
+| `database` | MySQL connect with `parseTime=true` |
+| `jwt` | HS256 generate/validate (24h) |
+| `middleware` | Bearer auth + `AuthorizeRoles` |
+| `response` | Stable `{"error"}` / `{"message"}` JSON |
+| `validator` | YYYY-MM-DD date parsing |
+| `utils` | DECIMAL/`[]byte` → string (Reporting) |
+| `constants` / `errors` / `logger` | Shared literals, sentinels, thin logging |
 
-```text
-Plain Password
-      |
-      v
-bcrypt
-      |
-      v
-Password Hash
-      |
-      v
-MySQL users.password_hash
-```
-
-During login, bcrypt compares the entered password with the stored hash.
+`JWT_SECRET` must be identical on Identity and every service that validates tokens.
 
 ---
 
-## 7. JWT Signing
+## API Gateway role
 
-JWT tokens are signed using:
+- Listens on **`:8080`**.
+- Registers only reverse-proxy routes (`routes/*_proxy.go`).
+- Does **not** validate JWT, open MySQL, or run domain handlers.
+- Upstream URLs from env (`IDENTITY_SERVICE_URL`, `CUSTOMER_SERVICE_URL`, …) via `config/gateway.go`.
 
-```text
-HS256
-```
-
-The JWT secret is stored in an environment variable:
-
-```text
-JWT_SECRET
-```
-
-Secrets and database passwords must not be committed to Git.
+AuthN/AuthZ run inside each microservice using `paylater/shared/middleware`.
 
 ---
 
-## 8. Authorization
+## API endpoints (12)
 
-The application uses role-based authorization.
+### Authentication (public → Identity)
 
-Current roles:
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/auth/register` | Public |
+| POST | `/auth/login` | Public |
 
-```text
-admin
-customer
-merchant
-```
+### Customer (→ Customer)
 
-### Admin
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/customers` | Admin |
+| GET | `/customers` | Admin |
 
-Admin has access to system-level operations.
+### Merchant (→ Merchant)
 
-### Customer
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/merchants` | Admin, Merchant |
+| PUT | `/merchants/:id` | Admin |
 
-Customers can perform authorized customer operations such as transactions and paybacks.
+### Transaction (→ Transaction)
 
-### Merchant
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/transactions` | Admin, Customer |
 
-Merchant authentication is supported. Merchant-specific protected business operations can be added according to business requirements.
+### Payback (→ Payback)
 
----
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/paybacks` | Admin, Customer |
 
-## 9. Middleware
+### Reports (→ Reporting)
 
-The application uses the following middleware:
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| GET | `/reports/merchant-fees` | Admin |
+| GET | `/reports/customer-dues` | Admin |
+| GET | `/reports/credit-limit` | Admin |
+| GET | `/reports/total-dues` | Admin |
 
-### Gin Logger Middleware
-
-Logs incoming HTTP requests.
-
-### Gin Recovery Middleware
-
-Recovers the server from unexpected panics.
-
-### AuthMiddleware
-
-Validates the JWT.
-
-```text
-Request
-   |
-   v
-JWT validation
-   |
-   +-- Invalid --> 401 Unauthorized
-   |
-   +-- Valid --> Continue
-```
-
-### AuthorizeRoles
-
-Checks whether the authenticated user's role is allowed to access an endpoint.
+Protected calls need:
 
 ```text
-Authenticated User
-       |
-       v
-Check Role
-       |
-       +-- Allowed --> Handler
-       |
-       +-- Not Allowed --> 403 Forbidden
+Authorization: Bearer <JWT>
 ```
 
 ---
 
-## 10. API Endpoints
+## Authentication and authorization
 
-The application currently contains **12 endpoints**.
-
-### Authentication
-
-| Method | Endpoint         | Access |
-| ------ | ---------------- | ------ |
-| POST   | `/auth/register` | Public |
-| POST   | `/auth/login`    | Public |
-
-Public registration is intended for customer and merchant accounts. Admin accounts should not be created through unrestricted public registration.
-
-### Customer
-
-| Method | Endpoint     | Access |
-| ------ | ------------ | ------ |
-| POST   | `/customers` | Admin  |
-| GET    | `/customers` | Admin  |
-
-### Merchant
-
-| Method | Endpoint         | Access |
-| ------ | ---------------- | ------ |
-| POST   | `/merchants`     | Admin  |
-| PUT    | `/merchants/:id` | Admin  |
-
-### Transaction
-
-| Method | Endpoint        | Access          |
-| ------ | --------------- | --------------- |
-| POST   | `/transactions` | Admin, Customer |
-
-### Payback
-
-| Method | Endpoint    | Access          |
-| ------ | ----------- | --------------- |
-| POST   | `/paybacks` | Admin, Customer |
-
-### Reports
-
-| Method | Endpoint                 | Access |
-| ------ | ------------------------ | ------ |
-| GET    | `/reports/merchant-fees` | Admin  |
-| GET    | `/reports/customer-dues` | Admin  |
-| GET    | `/reports/credit-limit`  | Admin  |
-| GET    | `/reports/total-dues`    | Admin  |
+- Passwords hashed with **bcrypt** (Identity Service).
+- JWT signed with **HS256**, 24h expiry, secret from `JWT_SECRET`.
+- Claims: `user_id`, `email`, `role`.
+- Roles: `admin`, `customer`, `merchant`.
+- Middleware flow on each service: AuthMiddleware → AuthorizeRoles → handler.
 
 ---
 
-## 11. Authentication Flow
+## Environment variables
+
+### Gateway (repo root `.env`)
 
 ```text
-User
- |
- v
-POST /auth/login
- |
- v
-Check email
- |
- v
-Get user from MySQL
- |
- v
-bcrypt password verification
- |
- v
-Generate JWT
- |
- v
-Return JWT
+JWT_SECRET=<strong-random-secret>
+
+IDENTITY_SERVICE_URL=http://localhost:8081
+CUSTOMER_SERVICE_URL=http://localhost:8082
+MERCHANT_SERVICE_URL=http://localhost:8083
+TRANSACTION_SERVICE_URL=http://localhost:8084
+PAYBACK_SERVICE_URL=http://localhost:8085
+REPORTING_SERVICE_URL=http://localhost:8086
 ```
 
----
-
-## 12. Protected API Flow
-
-```text
-Client
- |
- | Bearer JWT
- v
-AuthMiddleware
- |
- | JWT Valid
- v
-AuthorizeRoles
- |
- | Role Allowed
- v
-Handler
- |
- v
-Service
- |
- v
-SQLC
- |
- v
-MySQL
-```
-
----
-
-## 13. Environment Variables
-
-Create a `.env` file.
-
-Example:
+### Each microservice (`<service>/.env`)
 
 ```text
 DB_HOST=localhost
 DB_PORT=3306
-DB_USER=<database-user>
-DB_PASSWORD=<database-password>
-DB_NAME=<database-name>
-
-JWT_SECRET=<strong-random-secret>
+DB_USER=<user>
+DB_PASSWORD=<password>
+DB_NAME=<service_db_name>
+JWT_SECRET=<same-as-identity>
+PORT=<optional; defaults in code>
 ```
 
-Do not commit `.env` to Git.
-
-Add it to `.gitignore`:
-
-```text
-.env
-```
+Use Unix LF line endings in `.env` files. Do not commit secrets.
 
 ---
 
-## 14. Run the Application
+## Build and run
 
-Install dependencies:
+Requires Go **1.25+**, MySQL with the six service databases created and schemas applied.
+
+### Build shared + all services
 
 ```bash
-go mod tidy
+cd shared && go build ./...
+cd ../identity-service && go build ./...
+cd ../customer-service && go build ./...
+cd ../merchant-service && go build ./...
+cd ../transaction-service && go build ./...
+cd ../payback-service && go build ./...
+cd ../reporting-service && go build ./...
+cd .. && go build .
 ```
 
-Build:
+### Run (separate terminals; start services before the gateway)
 
 ```bash
-go build ./...
-```
+cd identity-service && go run ./cmd/server
+cd customer-service && go run ./cmd/server
+cd merchant-service && go run ./cmd/server
+cd transaction-service && go run ./cmd/server
+cd payback-service && go run ./cmd/server
+cd reporting-service && go run ./cmd/server
 
-Run:
-
-```bash
+# From repo root (loads gateway .env)
 go run .
 ```
 
-The application runs on:
+Gateway: `http://localhost:8080`
 
-```text
-http://localhost:8080
-```
+### SQLC
 
----
-
-## 15. Testing
-
-Postman can be used to test the REST APIs.
-
-For protected APIs:
-
-1. Login using `/auth/login`.
-2. Copy the returned JWT.
-3. Select **Bearer Token** in Postman.
-4. Paste the JWT.
-5. Call the required protected endpoint.
+Hand-written SQL lives in each service under `db/queries/`. Generated code is under `db/sqlc/` — **do not edit generated files**. Regenerate with `sqlc generate` inside the service after query changes.
 
 ---
 
-## 16. HTTP Security Responses
+## Important limitations
 
-```text
-200 OK
-Request successful
-
-201 Created
-Resource successfully created
-
-400 Bad Request
-Invalid request data
-
-401 Unauthorized
-JWT is missing, invalid, or expired
-
-403 Forbidden
-User is authenticated but does not have permission
-
-500 Internal Server Error
-Server/database error
-```
+- After DB split, invalid foreign IDs may succeed at insert time (no cross-DB FKs).
+- `report_db` is a **stale snapshot**; reports are not guaranteed live.
+- No list GET for transactions/paybacks; merchants have POST + PUT only.
 
 ---
 
-## 17. AWS Deployment
+## Testing
 
-The application is intended to use:
-
-```text
-Postman / Client
-       |
-       v
-Amazon EC2
-Go + Gin API
-       |
-       v
-Amazon RDS
-MySQL
-```
-
-Application logs will be sent to:
-
-```text
-Amazon CloudWatch
-```
-
-### AWS Components
-
-* **Amazon EC2** — hosts the Go PayLater API.
-* **Amazon RDS MySQL** — stores application data.
-* **Amazon CloudWatch** — collects and monitors application/server logs.
+1. `POST /auth/login` via the gateway.
+2. Copy the JWT.
+3. Call protected endpoints with `Authorization: Bearer <token>`.
 
 ---
 
-## 18. Security
+## Security checklist
 
-* Passwords are hashed using bcrypt.
-* JWT is used for authentication.
-* HS256 is used for JWT signing.
-* Role-based authorization controls API access.
-* Secrets are stored using environment variables.
-* `.env` must not be committed to Git.
-* Admin registration is not exposed through unrestricted public registration.
-* Protected APIs require a valid Bearer JWT.
-
----
-
-## 19. Main Modules
-
-The PayLater backend currently contains:
-
-```text
-Authentication
-Customer
-Merchant
-Transaction
-Payback
-Reports
-```
-
-The application currently provides **12 REST API endpoints**.
+- bcrypt password hashes
+- HS256 JWT with shared secret
+- Role-based authorization on protected routes
+- Secrets only in environment / `.env` (gitignored)
+- Gateway does not weaken service-level auth (proxies pass Authorization through)

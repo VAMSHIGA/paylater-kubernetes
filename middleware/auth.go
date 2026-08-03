@@ -1,3 +1,9 @@
+// Package middleware is the legacy monolith JWT auth and role-check layer.
+//
+// After the strangler migration, protected routes live on microservices that
+// use paylater/shared/middleware. The gateway proxies requests without running
+// these handlers. Kept temporarily for reference and any leftover local routes;
+// new code should import the shared middleware package.
 package middleware
 
 import (

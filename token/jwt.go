@@ -1,3 +1,8 @@
+// Package token is the legacy monolith JWT helper (HS256, 24h expiry).
+//
+// Production services use paylater/shared/jwt instead. This package remains only
+// because leftover monolith middleware still imports it; the gateway itself does
+// not issue or validate tokens. Prefer the shared module for all new work.
 package token
 
 import (
