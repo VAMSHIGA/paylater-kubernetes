@@ -1,0 +1,189 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: paylater-mysql
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./identity-service/docs/migrations/001_create_identity_database.sql:/docker-entrypoint-initdb.d/01_identity.sql:ro
+      - ./customer-service/docs/migrations/001_create_customer_database.sql:/docker-entrypoint-initdb.d/02_customer.sql:ro
+      - ./merchant-service/docs/migrations/001_create_merchant_database.sql:/docker-entrypoint-initdb.d/03_merchant.sql:ro
+      - ./transaction-service/docs/migrations/001_create_transaction_database.sql:/docker-entrypoint-initdb.d/04_transaction.sql:ro
+      - ./payback-service/docs/migrations/001_create_payback_database.sql:/docker-entrypoint-initdb.d/05_payback.sql:ro
+      - ./reporting-service/docs/migrations/001_create_report_database.sql:/docker-entrypoint-initdb.d/06_reporting.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  identity-service:
+    build:
+      context: .
+      dockerfile: identity-service/Dockerfile
+    container_name: paylater-identity
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      HTTP_PORT: "8081"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: identity_db
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8081:8081"
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: customer-service/Dockerfile
+    container_name: paylater-customer
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      HTTP_PORT: "8082"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: customer_db
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8082:8082"
+
+  merchant-service:
+    build:
+      context: .
+      dockerfile: merchant-service/Dockerfile
+    container_name: paylater-merchant
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      HTTP_PORT: "8083"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: merchant_db
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8083:8083"
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+    container_name: paylater-transaction
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      HTTP_PORT: "8084"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: transaction_db
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8084:8084"
+
+  payback-service:
+    build:
+      context: .
+      dockerfile: payback-service/Dockerfile
+    container_name: paylater-payback
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      HTTP_PORT: "8085"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: payback_db
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8085:8085"
+
+  reporting-service:
+    build:
+      context: .
+      dockerfile: reporting-service/Dockerfile
+    container_name: paylater-reporting
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      HTTP_PORT: "8086"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: report_db
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8086:8086"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paylater-gateway
+    restart: unless-stopped
+    networks:
+      - paylater-network
+    depends_on:
+      - identity-service
+      - customer-service
+      - merchant-service
+      - transaction-service
+      - payback-service
+      - reporting-service
+    environment:
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      CUSTOMER_SERVICE_URL: http://customer-service:8082
+      MERCHANT_SERVICE_URL: http://merchant-service:8083
+      TRANSACTION_SERVICE_URL: http://transaction-service:8084
+      PAYBACK_SERVICE_URL: http://payback-service:8085
+      REPORTING_SERVICE_URL: http://reporting-service:8086
+    ports:
+      - "8080:8080"
+
+networks:
+  paylater-network:
+    name: paylater-network
+
+volumes:
+  mysql_data:

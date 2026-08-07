@@ -30,7 +30,7 @@ func NewAuthHandler(service *service.AuthService) *AuthHandler {
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
-	Role     string `json:"role" binding:"required,oneof=customer merchant"`
+	Role     string `json:"role" binding:"required,oneof=customer merchant admin"`
 }
 
 // LoginRequest represents JSON received from POST /auth/login.
@@ -41,7 +41,7 @@ type LoginRequest struct {
 
 // Register handles POST /auth/register.
 //
-// Validates email, password (min 6), and role (customer|merchant), then
+// Validates email, password (min 6), and role (customer|merchant|admin), then
 // delegates account creation to AuthService. Returns 201 on success.
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest

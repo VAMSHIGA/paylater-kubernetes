@@ -1,4 +1,10 @@
-// Command server is the Merchant Service process entry point (default port 8083).
+// Command server is the Merchant Service process entry point.
+//
+// Startup flow:
+//  1. Load configuration (port 8083, merchant_db, JWT secret).
+//  2. Connect to MySQL.
+//  3. Wire repository → service → handler → router.
+//  4. Listen for HTTP requests on the configured port.
 package main
 
 import (
@@ -24,7 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer conn.Close()
 
 	repo := repository.New(conn)
@@ -32,7 +37,6 @@ func main() {
 	merchantHandler := handler.NewMerchantHandler(merchantService)
 
 	engine := gin.Default()
-
 	router.RegisterMerchantRoutes(engine, merchantHandler)
 
 	addr := ":" + cfg.Server.Port

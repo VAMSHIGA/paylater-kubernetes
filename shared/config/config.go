@@ -10,7 +10,6 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -54,9 +53,7 @@ type JWTConfig struct {
 //
 // Returns an error when database settings or JWT_SECRET are incomplete.
 func Load(defaultHTTPPort string) (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		log.Println(".env file not found")
-	}
+	loadOptionalEnvFile()
 
 	cfg := &Config{
 		Server: ServerConfig{
@@ -83,6 +80,17 @@ func Load(defaultHTTPPort string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// loadOptionalEnvFile loads a local .env file when present (development).
+// Missing .env is normal in Docker/Kubernetes where env vars are injected.
+// godotenv does not override variables already set in the process environment.
+func loadOptionalEnvFile() {
+	if _, err := os.Stat(".env"); err != nil {
+		return
+	}
+
+	_ = godotenv.Load()
 }
 
 // envOrDefault returns the environment value for key, or defaultValue when unset.

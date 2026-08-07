@@ -10,7 +10,8 @@ import (
 // TransactionProxyRoutes forwards transaction requests to the Transaction Service.
 //
 // Strangler routing:
-//   POST /transactions → Transaction Service
+//
+//	POST /transactions → Transaction Service
 //
 // Local transaction routes are not registered; transaction APIs are owned by the Transaction Service.
 func TransactionProxyRoutes(router *gin.Engine, transactionServiceURL string) {

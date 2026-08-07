@@ -10,8 +10,9 @@ import (
 // CustomerProxyRoutes forwards customer requests to the Customer Service.
 //
 // Strangler routing:
-//   POST /customers → Customer Service
-//   GET /customers  → Customer Service
+//
+//	POST /customers → Customer Service
+//	GET /customers  → Customer Service
 //
 // Local customer routes are not registered; customer APIs are owned by the Customer Service.
 func CustomerProxyRoutes(router *gin.Engine, customerServiceURL string) {

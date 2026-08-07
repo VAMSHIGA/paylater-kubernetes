@@ -1,4 +1,10 @@
-// Command server is the Payback Service process entry point (default port 8085).
+// Command server is the Payback Service process entry point.
+//
+// Startup flow:
+//  1. Load configuration (port 8085, payback_db, JWT secret).
+//  2. Connect to MySQL.
+//  3. Wire repository → service → handler → router.
+//  4. Listen for HTTP requests on the configured port.
 package main
 
 import (
@@ -24,7 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer conn.Close()
 
 	repo := repository.New(conn)
@@ -32,7 +37,6 @@ func main() {
 	paybackHandler := handler.NewPaybackHandler(paybackService)
 
 	engine := gin.Default()
-
 	router.PaybackRoutes(engine, paybackHandler)
 
 	addr := ":" + cfg.Server.Port

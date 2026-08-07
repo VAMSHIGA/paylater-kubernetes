@@ -10,10 +10,11 @@ import (
 // ReportProxyRoutes forwards report requests to the Reporting Service.
 //
 // Strangler routing:
-//   GET /reports/merchant-fees → Reporting Service
-//   GET /reports/customer-dues → Reporting Service
-//   GET /reports/credit-limit  → Reporting Service
-//   GET /reports/total-dues    → Reporting Service
+//
+//	GET /reports/merchant-fees → Reporting Service
+//	GET /reports/customer-dues → Reporting Service
+//	GET /reports/credit-limit  → Reporting Service
+//	GET /reports/total-dues    → Reporting Service
 //
 // Local report routes are not registered; report APIs are owned by the Reporting Service.
 func ReportProxyRoutes(router *gin.Engine, reportingServiceURL string) {

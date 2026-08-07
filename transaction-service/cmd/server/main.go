@@ -1,4 +1,10 @@
-// Command server is the Transaction Service process entry point (default port 8084).
+// Command server is the Transaction Service process entry point.
+//
+// Startup flow:
+//  1. Load configuration (port 8084, transaction_db, JWT secret).
+//  2. Connect to MySQL.
+//  3. Wire repository → service → handler → router.
+//  4. Listen for HTTP requests on the configured port.
 package main
 
 import (
@@ -24,7 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer conn.Close()
 
 	repo := repository.New(conn)
@@ -32,7 +37,6 @@ func main() {
 	transactionHandler := handler.NewTransactionHandler(transactionService)
 
 	engine := gin.Default()
-
 	router.TransactionRoutes(engine, transactionHandler)
 
 	addr := ":" + cfg.Server.Port

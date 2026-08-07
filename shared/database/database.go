@@ -8,6 +8,9 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
+	"github.com/go-sql-driver/mysql"
 
 	"paylater/shared/config"
 	"paylater/shared/logger"
@@ -15,29 +18,50 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+const (
+	maxConnectAttempts = 10
+	initialRetryDelay  = 2 * time.Second
+)
+
 // Connect opens and verifies a MySQL connection using the provided configuration.
 //
-// On success it logs a connection confirmation. On failure it returns the
-// open or ping error without logging secrets.
+// Retries ping failures so services can wait for Docker DNS and MySQL readiness
+// during container startup. On success it logs a connection confirmation.
 func Connect(cfg config.DBConfig) (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		cfg.User,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		cfg.Name,
-	)
+	mysqlCfg := mysql.Config{
+		User:                 cfg.User,
+		Passwd:               cfg.Password,
+		Net:                  "tcp",
+		Addr:                 fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
+		DBName:               cfg.Name,
+		ParseTime:            true,
+		AllowNativePasswords: true,
+	}
+	dsn := mysqlCfg.FormatDSN()
 
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return nil, err
+	var db *sql.DB
+	var err error
+
+	for attempt := 1; attempt <= maxConnectAttempts; attempt++ {
+		db, err = sql.Open("mysql", dsn)
+		if err != nil {
+			return nil, err
+		}
+
+		err = db.Ping()
+		if err == nil {
+			logger.Info("MySQL Connected Successfully")
+			return db, nil
+		}
+
+		_ = db.Close()
+
+		if attempt < maxConnectAttempts {
+			delay := time.Duration(attempt) * initialRetryDelay
+			logger.Info(fmt.Sprintf("MySQL not ready (attempt %d/%d), retrying in %s", attempt, maxConnectAttempts, delay))
+			time.Sleep(delay)
+		}
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	logger.Info("MySQL Connected Successfully")
-
-	return db, nil
+	return nil, err
 }

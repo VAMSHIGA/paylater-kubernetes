@@ -16,8 +16,9 @@ import (
 // AuthProxyRoutes forwards authentication requests to the Identity Service.
 //
 // Strangler routing:
-//   POST /auth/register → Identity Service
-//   POST /auth/login    → Identity Service
+//
+//	POST /auth/register → Identity Service
+//	POST /auth/login    → Identity Service
 //
 // Local AuthHandler routes are not registered; auth code remains in the monolith
 // for a future cleanup phase.

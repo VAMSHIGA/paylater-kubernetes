@@ -19,9 +19,10 @@ import (
 )
 
 func main() {
-
 	router := gin.Default()
 
+	// Register one reverse-proxy route group per downstream microservice.
+	// Each group forwards requests to the service that owns that domain.
 	identityServiceURL := config.IdentityServiceURL()
 	log.Printf("Identity Service proxy target: %s", identityServiceURL)
 

@@ -1,0 +1,43 @@
+# Keep Docker build context small; include only files needed for containerized services.
+*
+
+# Never bake local env files into images (Compose injects env at runtime).
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# API Gateway (docker build -t paylater-api-gateway .)
+!go.mod
+!go.sum
+!main.go
+!config/
+!config/**
+!routes/
+!routes/**
+
+# Identity Service (docker build -f identity-service/Dockerfile -t paylater-identity-service .)
+!identity-service/
+!identity-service/**
+!shared/
+!shared/**
+
+# Customer Service (docker build -f customer-service/Dockerfile -t paylater-customer-service .)
+!customer-service/
+!customer-service/**
+
+# Merchant Service (docker build -f merchant-service/Dockerfile -t paylater-merchant-service .)
+!merchant-service/
+!merchant-service/**
+
+# Transaction Service (docker build -f transaction-service/Dockerfile -t paylater-transaction-service .)
+!transaction-service/
+!transaction-service/**
+
+# Payback Service (docker build -f payback-service/Dockerfile -t paylater-payback-service .)
+!payback-service/
+!payback-service/**
+
+# Reporting Service (docker build -f reporting-service/Dockerfile -t paylater-reporting-service .)
+!reporting-service/
+!reporting-service/**

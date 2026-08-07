@@ -14,9 +14,9 @@ import (
 // Used by the strangler proxy for POST /auth/register and POST /auth/login.
 //
 // Priority:
-//   1. IDENTITY_SERVICE_URL (e.g. http://localhost:8081)
-//   2. http://IDENTITY_SERVICE_HOST:IDENTITY_SERVICE_PORT
-//   3. http://localhost:8081
+//  1. IDENTITY_SERVICE_URL (e.g. http://localhost:8081)
+//  2. http://IDENTITY_SERVICE_HOST:IDENTITY_SERVICE_PORT
+//  3. http://localhost:8081
 func IdentityServiceURL() string {
 	if url := os.Getenv("IDENTITY_SERVICE_URL"); url != "" {
 		return url
@@ -39,9 +39,9 @@ func IdentityServiceURL() string {
 // Used by the strangler proxy for POST /customers and GET /customers.
 //
 // Priority:
-//   1. CUSTOMER_SERVICE_URL (e.g. http://localhost:8082)
-//   2. http://CUSTOMER_SERVICE_HOST:CUSTOMER_SERVICE_PORT
-//   3. http://localhost:8082
+//  1. CUSTOMER_SERVICE_URL (e.g. http://localhost:8082)
+//  2. http://CUSTOMER_SERVICE_HOST:CUSTOMER_SERVICE_PORT
+//  3. http://localhost:8082
 func CustomerServiceURL() string {
 	if url := os.Getenv("CUSTOMER_SERVICE_URL"); url != "" {
 		return url
@@ -64,9 +64,9 @@ func CustomerServiceURL() string {
 // Used by the strangler proxy for POST /merchants and PUT /merchants/:id.
 //
 // Priority:
-//   1. MERCHANT_SERVICE_URL (e.g. http://localhost:8083)
-//   2. http://MERCHANT_SERVICE_HOST:MERCHANT_SERVICE_PORT
-//   3. http://localhost:8083
+//  1. MERCHANT_SERVICE_URL (e.g. http://localhost:8083)
+//  2. http://MERCHANT_SERVICE_HOST:MERCHANT_SERVICE_PORT
+//  3. http://localhost:8083
 func MerchantServiceURL() string {
 	if url := os.Getenv("MERCHANT_SERVICE_URL"); url != "" {
 		return url
@@ -89,9 +89,9 @@ func MerchantServiceURL() string {
 // Used by the strangler proxy for POST /transactions.
 //
 // Priority:
-//   1. TRANSACTION_SERVICE_URL (e.g. http://localhost:8084)
-//   2. http://TRANSACTION_SERVICE_HOST:TRANSACTION_SERVICE_PORT
-//   3. http://localhost:8084
+//  1. TRANSACTION_SERVICE_URL (e.g. http://localhost:8084)
+//  2. http://TRANSACTION_SERVICE_HOST:TRANSACTION_SERVICE_PORT
+//  3. http://localhost:8084
 func TransactionServiceURL() string {
 	if url := os.Getenv("TRANSACTION_SERVICE_URL"); url != "" {
 		return url
@@ -114,9 +114,9 @@ func TransactionServiceURL() string {
 // Used by the strangler proxy for POST /paybacks.
 //
 // Priority:
-//   1. PAYBACK_SERVICE_URL (e.g. http://localhost:8085)
-//   2. http://PAYBACK_SERVICE_HOST:PAYBACK_SERVICE_PORT
-//   3. http://localhost:8085
+//  1. PAYBACK_SERVICE_URL (e.g. http://localhost:8085)
+//  2. http://PAYBACK_SERVICE_HOST:PAYBACK_SERVICE_PORT
+//  3. http://localhost:8085
 func PaybackServiceURL() string {
 	if url := os.Getenv("PAYBACK_SERVICE_URL"); url != "" {
 		return url
@@ -139,9 +139,9 @@ func PaybackServiceURL() string {
 // Used by the strangler proxy for report GET endpoints.
 //
 // Priority:
-//   1. REPORTING_SERVICE_URL (e.g. http://localhost:8086)
-//   2. http://REPORTING_SERVICE_HOST:REPORTING_SERVICE_PORT
-//   3. http://localhost:8086
+//  1. REPORTING_SERVICE_URL (e.g. http://localhost:8086)
+//  2. http://REPORTING_SERVICE_HOST:REPORTING_SERVICE_PORT
+//  3. http://localhost:8086
 func ReportingServiceURL() string {
 	if url := os.Getenv("REPORTING_SERVICE_URL"); url != "" {
 		return url

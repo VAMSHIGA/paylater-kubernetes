@@ -1,7 +1,12 @@
 // Command server is the Customer Service process entry point.
 //
-// Loads shared config (default port 8082), connects to customer_db, and serves
-// admin-protected customer APIs behind the monolith strangler proxy.
+// Startup flow:
+//  1. Load configuration (port 8082, customer_db, JWT secret).
+//  2. Connect to MySQL.
+//  3. Wire repository → service → handler → router.
+//  4. Listen for HTTP requests on the configured port.
+//
+// Customer APIs are admin-only and protected by shared JWT middleware in the router.
 package main
 
 import (
@@ -27,7 +32,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer conn.Close()
 
 	repo := repository.New(conn)
@@ -35,7 +39,6 @@ func main() {
 	customerHandler := handler.NewCustomerHandler(customerService)
 
 	engine := gin.Default()
-
 	router.CustomerRoutes(engine, customerHandler)
 
 	addr := ":" + cfg.Server.Port

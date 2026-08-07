@@ -16,7 +16,7 @@ type CustomerService struct {
 	repo *repository.Repository
 }
 
-// NewCustomerService creates a new CustomerService.
+// NewCustomerService creates a new CustomerService. constructor to create a objects
 func NewCustomerService(repo *repository.Repository) *CustomerService {
 	return &CustomerService{
 		repo: repo,

@@ -10,7 +10,8 @@ import (
 // PaybackProxyRoutes forwards payback requests to the Payback Service.
 //
 // Strangler routing:
-//   POST /paybacks → Payback Service
+//
+//	POST /paybacks → Payback Service
 //
 // Local payback routes are not registered; payback APIs are owned by the Payback Service.
 func PaybackProxyRoutes(router *gin.Engine, paybackServiceURL string) {

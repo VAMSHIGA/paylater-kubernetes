@@ -10,8 +10,9 @@ import (
 // MerchantProxyRoutes forwards merchant requests to the Merchant Service.
 //
 // Strangler routing:
-//   POST /merchants     → Merchant Service
-//   PUT /merchants/:id  → Merchant Service
+//
+//	POST /merchants     → Merchant Service
+//	PUT /merchants/:id  → Merchant Service
 //
 // Local merchant routes are not registered; merchant APIs are owned by the Merchant Service.
 func MerchantProxyRoutes(router *gin.Engine, merchantServiceURL string) {

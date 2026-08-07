@@ -1,7 +1,10 @@
 // Command server is the Identity Service process entry point.
 //
-// It loads shared config (default port 8081), connects to identity_db, wires
-// repository → service → handler → router, and serves authentication APIs.
+// Startup flow:
+//  1. Load configuration (port 8081, identity_db, JWT secret).
+//  2. Connect to MySQL.
+//  3. Wire repository → service → handler → router.
+//  4. Listen for HTTP requests on the configured port.
 package main
 
 import (
@@ -27,15 +30,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer conn.Close()
 
+	// Layered wiring: each layer depends only on the one below it.
 	repo := repository.New(conn)
 	authService := service.NewAuthService(repo)
 	authHandler := handler.NewAuthHandler(authService)
 
 	engine := gin.Default()
-
 	router.AuthRoutes(engine, authHandler)
 
 	addr := ":" + cfg.Server.Port
