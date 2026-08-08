@@ -5,6 +5,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -71,7 +72,15 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, service.ErrCustomerNotFound) {
+			response.Error(c, http.StatusNotFound, "customer not found")
+			return
+		}
+		if errors.Is(err, service.ErrMerchantNotFound) {
+			response.Error(c, http.StatusNotFound, "merchant not found")
+			return
+		}
+		response.InternalError(c, err)
 		return
 	}
 

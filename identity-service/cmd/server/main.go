@@ -18,6 +18,8 @@ import (
 	"paylater/identity-service/internal/service"
 	"paylater/shared/config"
 	"paylater/shared/database"
+	"paylater/shared/health"
+	"paylater/shared/server"
 )
 
 func main() {
@@ -32,18 +34,18 @@ func main() {
 	}
 	defer conn.Close()
 
-	// Layered wiring: each layer depends only on the one below it.
 	repo := repository.New(conn)
 	authService := service.NewAuthService(repo)
 	authHandler := handler.NewAuthHandler(authService)
 
 	engine := gin.Default()
+	health.Register(engine)
 	router.AuthRoutes(engine, authHandler)
 
 	addr := ":" + cfg.Server.Port
 	log.Printf("Identity Service started on %s", addr)
 
-	if err := engine.Run(addr); err != nil {
+	if err := server.Run(engine, addr); err != nil {
 		log.Fatal(err)
 	}
 }

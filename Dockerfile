@@ -21,11 +21,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /api-gateway .
 # --- Runtime stage: lightweight image with only the binary ---
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates wget \
+    && adduser -D -u 10001 appuser
 
 WORKDIR /app
 
-COPY --from=builder /api-gateway .
+COPY --from=builder --chown=appuser:appuser /api-gateway .
+
+USER appuser
 
 EXPOSE 8080
 

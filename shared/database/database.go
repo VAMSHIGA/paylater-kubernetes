@@ -50,6 +50,9 @@ func Connect(cfg config.DBConfig) (*sql.DB, error) {
 
 		err = db.Ping()
 		if err == nil {
+			db.SetMaxOpenConns(25)
+			db.SetMaxIdleConns(10)
+			db.SetConnMaxLifetime(5 * time.Minute)
 			logger.Info("MySQL Connected Successfully")
 			return db, nil
 		}

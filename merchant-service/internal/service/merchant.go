@@ -6,10 +6,14 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"paylater/merchant-service/db/sqlc"
 	"paylater/merchant-service/internal/repository"
 )
+
+// ErrMerchantNotFound is returned when updating a merchant that does not exist.
+var ErrMerchantNotFound = errors.New("merchant not found")
 
 // MerchantService contains the business logic related to merchants.
 type MerchantService struct {
@@ -44,9 +48,12 @@ func (s *MerchantService) UpdateMerchantCommission(
 	params sqlc.UpdateMerchantCommissionParams,
 ) error {
 
-	err := s.repo.UpdateMerchantCommission(ctx, params)
+	rows, err := s.repo.UpdateMerchantCommission(ctx, params)
 	if err != nil {
 		return err
+	}
+	if rows == 0 {
+		return ErrMerchantNotFound
 	}
 
 	return nil

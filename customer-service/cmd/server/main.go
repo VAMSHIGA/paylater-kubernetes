@@ -1,12 +1,4 @@
 // Command server is the Customer Service process entry point.
-//
-// Startup flow:
-//  1. Load configuration (port 8082, customer_db, JWT secret).
-//  2. Connect to MySQL.
-//  3. Wire repository → service → handler → router.
-//  4. Listen for HTTP requests on the configured port.
-//
-// Customer APIs are admin-only and protected by shared JWT middleware in the router.
 package main
 
 import (
@@ -20,6 +12,8 @@ import (
 	"paylater/customer-service/internal/service"
 	"paylater/shared/config"
 	"paylater/shared/database"
+	"paylater/shared/health"
+	"paylater/shared/server"
 )
 
 func main() {
@@ -39,12 +33,13 @@ func main() {
 	customerHandler := handler.NewCustomerHandler(customerService)
 
 	engine := gin.Default()
+	health.Register(engine)
 	router.CustomerRoutes(engine, customerHandler)
 
 	addr := ":" + cfg.Server.Port
 	log.Printf("Customer Service started on %s", addr)
 
-	if err := engine.Run(addr); err != nil {
+	if err := server.Run(engine, addr); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -1,10 +1,4 @@
 // Command server is the Transaction Service process entry point.
-//
-// Startup flow:
-//  1. Load configuration (port 8084, transaction_db, JWT secret).
-//  2. Connect to MySQL.
-//  3. Wire repository → service → handler → router.
-//  4. Listen for HTTP requests on the configured port.
 package main
 
 import (
@@ -14,6 +8,8 @@ import (
 
 	"paylater/shared/config"
 	"paylater/shared/database"
+	"paylater/shared/health"
+	"paylater/shared/server"
 	"paylater/transaction-service/internal/handler"
 	"paylater/transaction-service/internal/repository"
 	"paylater/transaction-service/internal/router"
@@ -37,12 +33,13 @@ func main() {
 	transactionHandler := handler.NewTransactionHandler(transactionService)
 
 	engine := gin.Default()
+	health.Register(engine)
 	router.TransactionRoutes(engine, transactionHandler)
 
 	addr := ":" + cfg.Server.Port
 	log.Printf("Transaction Service started on %s", addr)
 
-	if err := engine.Run(addr); err != nil {
+	if err := server.Run(engine, addr); err != nil {
 		log.Fatal(err)
 	}
 }

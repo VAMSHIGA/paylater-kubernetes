@@ -5,6 +5,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -76,7 +77,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 
@@ -117,7 +118,11 @@ func (h *MerchantHandler) UpdateMerchantCommission(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, service.ErrMerchantNotFound) {
+			response.Error(c, http.StatusNotFound, "merchant not found")
+			return
+		}
+		response.InternalError(c, err)
 		return
 	}
 

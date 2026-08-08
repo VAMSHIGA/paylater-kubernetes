@@ -6,6 +6,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -59,7 +60,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, service.ErrEmailAlreadyExists) {
+			response.Error(c, http.StatusConflict, "email already registered")
+			return
+		}
+		response.InternalError(c, err)
 		return
 	}
 

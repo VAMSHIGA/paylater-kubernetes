@@ -34,6 +34,9 @@ type CreateMerchantParams struct {
 // ===========================
 // Merchant Queries
 // ===========================
+// SQLC inputs for Merchant Service (merchant_db).
+// CreateMerchant onboards a merchant; UpdateMerchantCommission
+// changes fee percent used by reporting. Generated code: db/sqlc.
 // ===========================
 // Create Merchant
 // ===========================
@@ -50,7 +53,7 @@ func (q *Queries) CreateMerchant(ctx context.Context, arg CreateMerchantParams) 
 	)
 }
 
-const updateMerchantCommission = `-- name: UpdateMerchantCommission :exec
+const updateMerchantCommission = `-- name: UpdateMerchantCommission :execrows
 
 UPDATE merchants
 SET commission = ?
@@ -72,7 +75,10 @@ type UpdateMerchantCommissionParams struct {
 //
 // SQLC generates:
 // UpdateMerchantCommission(ctx, params)
-func (q *Queries) UpdateMerchantCommission(ctx context.Context, arg UpdateMerchantCommissionParams) error {
-	_, err := q.db.ExecContext(ctx, updateMerchantCommission, arg.Commission, arg.ID)
-	return err
+func (q *Queries) UpdateMerchantCommission(ctx context.Context, arg UpdateMerchantCommissionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateMerchantCommission, arg.Commission, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

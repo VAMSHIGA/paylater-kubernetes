@@ -38,7 +38,7 @@ func (h *ReportHandler) GetMerchantFee(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *ReportHandler) GetCustomerDues(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 
@@ -92,7 +92,7 @@ func (h *ReportHandler) GetUsersAtCreditLimit(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *ReportHandler) GetTotalDues(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 

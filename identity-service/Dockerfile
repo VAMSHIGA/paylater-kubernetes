@@ -27,11 +27,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /identity-service ./cm
 # --- Runtime stage: lightweight image with only the binary ---
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates wget \
+    && adduser -D -u 10001 appuser
 
 WORKDIR /app
 
-COPY --from=builder /identity-service .
+COPY --from=builder --chown=appuser:appuser /identity-service .
+
+USER appuser
 
 EXPOSE 8081
 

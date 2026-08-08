@@ -68,7 +68,7 @@ func (h *PaybackHandler) CreatePayback(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 

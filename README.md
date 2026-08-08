@@ -315,7 +315,7 @@ Create a `.env` file in the repository root before running Compose:
 MYSQL_ROOT_PASSWORD=your_secure_mysql_password
 JWT_SECRET=your_secure_jwt_secret
 DB_USER=root
-MYSQL_PORT=3306
+MYSQL_PORT=3308
 ```
 
 Microservices receive `DB_HOST=mysql`, `DB_PASSWORD=${MYSQL_ROOT_PASSWORD}`, and `JWT_SECRET` from Compose. The gateway receives `*_SERVICE_URL` values pointing at Docker service hostnames.
@@ -424,7 +424,8 @@ Resolved by `config/gateway.go`. Full URL takes priority over host/port pairs.
 | `MYSQL_ROOT_PASSWORD` | MySQL root password (used by all services as `DB_PASSWORD`) |
 | `JWT_SECRET` | Shared JWT secret for all microservices |
 | `DB_USER` | MySQL user (default: `root`) |
-| `MYSQL_PORT` | Host port for MySQL (default: `3306`) |
+| `MYSQL_PORT` | Host port for MySQL (default: `3308` in `.env.example`) |
+| `APP_VERSION` | Docker image tag for application services (default: `latest`) |
 
 Do not commit `.env` files. Use `.env.example` in each service as a template.
 
@@ -533,7 +534,7 @@ Use the returned token for protected endpoints: `Authorization: Bearer <token>`.
 MYSQL_ROOT_PASSWORD=your_secure_mysql_password
 JWT_SECRET=your_secure_jwt_secret
 DB_USER=root
-MYSQL_PORT=3306
+MYSQL_PORT=3308
 ```
 
 ### 2. Build images individually (optional)
@@ -587,57 +588,34 @@ docker images
 
 ## Screenshots
 
-### Architecture Diagram
+Screenshot placeholders were removed from this README. Add images under `docs/screenshots/` when available:
 
-<!-- TODO: Add architecture diagram screenshot -->
-![Architecture Diagram](docs/screenshots/architecture-diagram.png)
-
-*Placeholder: Add a diagram showing Client → API Gateway → Microservices → MySQL.*
-
-### API Testing (Postman)
-
-<!-- TODO: Add Postman screenshot -->
-![API Testing Postman](docs/screenshots/postman-api-testing.png)
-
-*Placeholder: Add Postman screenshots for register, login, and protected endpoints.*
-
-### Docker Containers
-
-<!-- TODO: Add docker ps screenshot -->
-![Docker Containers](docs/screenshots/docker-containers.png)
-
-*Placeholder: Add `docker compose ps` or `docker ps` output showing all PayLater containers.*
-
-### Docker Images
-
-<!-- TODO: Add docker images screenshot -->
-![Docker Images](docs/screenshots/docker-images.png)
-
-*Placeholder: Add `docker images` output showing `paylater-*` images.*
+- `docs/screenshots/architecture-diagram.png`
+- `docs/screenshots/postman-api-testing.png`
+- `docs/screenshots/docker-containers.png`
+- `docs/screenshots/docker-images.png`
 
 ---
 
 ## Known Limitations
 
-- No cross-database foreign keys; invalid `customer_id` / `merchant_id` values may insert successfully.
-- `report_db` is refreshed on each report request; there is a small window for concurrent writes during snapshot copy.
+- Transaction creation validates `customer_id` and `merchant_id` via same-MySQL cross-database reads; this assumes all databases run on one MySQL server (Docker Compose default).
+- Credit-limit enforcement at transaction time is **not implemented** — reports can show customers at their limit, but transactions are not blocked automatically.
+- `report_db` is refreshed on startup and every 60 seconds; there is a small window for concurrent writes during snapshot copy.
 - No list GET endpoints for transactions or paybacks.
-- Merchant update (`PUT /merchants/:id`) may return success even when the ID does not exist (0 rows updated).
+- Merchant update (`PUT /merchants/:id`) returns 404 when the merchant does not exist.
 
 ---
 
 ## Future Improvements
 
-- Install and document a root `.env.example` for Docker Compose
-- Add service health checks and gateway readiness dependencies in Compose
-- Event-driven or scheduled snapshot refresh instead of per-request copy for high-traffic reporting
-- Cross-service validation for `customer_id` and `merchant_id`
+- Add gateway/service health checks in Kubernetes manifests
+- Event-driven snapshot refresh for high-traffic reporting
 - Return created entity IDs in POST responses
 - Add list/query endpoints for transactions and paybacks
-- Return HTTP 409 for duplicate registration instead of raw database errors
 - Add integration tests and CI pipeline
 - Add OpenAPI/Swagger documentation
-- Add Kubernetes deployment manifests
+- Credit-limit enforcement at transaction time (product decision required)
 
 ---
 

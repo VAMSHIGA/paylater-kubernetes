@@ -1,4 +1,4 @@
-# Reporting Service — Database Ownership (Phase 4)
+# Reporting Service — Database Ownership
 
 ## Read-model snapshot
 
@@ -9,42 +9,30 @@
 - `transactions`
 - `paybacks`
 
-Reporting Service reads **only** from `report_db`. It does not write to these tables.
+Reporting Service reads **only** from `report_db` for report queries.
 
-Data is copied from `paylater_tables` at migration time. **No automatic synchronization** is implemented in this phase.
+## Snapshot refresh
 
-## Staleness limitation
+The Reporting Service refreshes `report_db` from domain databases using `internal/sync/snapshot.go`:
 
-Live writes are owned by domain microservices:
+| When | Behavior |
+|------|----------|
+| Service startup | Full TRUNCATE + COPY from `customer_db`, `merchant_db`, `transaction_db`, `payback_db` |
+| Every 60 seconds | Background scheduled refresh (same copy logic) |
+| Report requests | Read from `report_db` only (no per-request refresh) |
+
+All domain databases must live on the same MySQL server as `report_db` (as in Docker Compose).
+
+## Domain ownership
 
 | Domain | Live database | Reporting snapshot |
 |--------|---------------|-------------------|
-| Customers | `customer_db` | `report_db.customers` (snapshot) |
-| Merchants | `merchant_db` | `report_db.merchants` (snapshot) |
-| Transactions | `transaction_db` | `report_db.transactions` (snapshot) |
-| Paybacks | `payback_db` | `report_db.paybacks` (snapshot) |
+| Customers | `customer_db` | `report_db.customers` |
+| Merchants | `merchant_db` | `report_db.merchants` |
+| Transactions | `transaction_db` | `report_db.transactions` |
+| Paybacks | `payback_db` | `report_db.paybacks` |
 
-New records created via Customer, Merchant, Transaction, or Payback services **do not** appear in reports until `report_db` is refreshed.
+## Future improvements
 
-The monolith `paylater_tables` copies are also stale relative to live service databases.
-
-### Behavior (documented, no API contract change)
-
-| Scenario | Report output |
-|----------|----------------|
-| Data at migration time | Matches prior `paylater_tables` reports |
-| New customer/merchant/transaction/payback after migration | **Not reflected** until snapshot refresh |
-| Request/response JSON | Unchanged |
-| SQL formulas | Unchanged |
-
-No Kafka, RabbitMQ, CDC, event sourcing, or sync jobs were added per migration rules.
-
-## Mitigation (future phases, out of scope here)
-
-- Scheduled snapshot refresh from service databases or monolith
-- CDC / event-driven replication into `report_db`
-- Federated queries across service databases
-
-## Monolith
-
-`paylater_tables` report copies remain until strangler cleanup. Reports on the monolith still read `paylater_tables` until proxy migration.
+- Event-driven or on-demand admin refresh endpoint
+- CDC / message-bus replication when services run on separate MySQL instances

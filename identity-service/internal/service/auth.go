@@ -9,12 +9,16 @@ import (
 	"context"
 	"errors"
 
+	"github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
 
 	"paylater/identity-service/db/sqlc"
 	"paylater/identity-service/internal/repository"
 	"paylater/shared/jwt"
 )
+
+// ErrEmailAlreadyExists is returned when registration uses an email that already exists.
+var ErrEmailAlreadyExists = errors.New("email already registered")
 
 // AuthService contains authentication business logic for register and login.
 type AuthService struct {
@@ -53,8 +57,15 @@ func (s *AuthService) Register(
 	}
 
 	_, err = s.repo.CreateUser(ctx, params)
+	if err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return ErrEmailAlreadyExists
+		}
+		return err
+	}
 
-	return err
+	return nil
 }
 
 // Login loads the user by email, verifies the password hash, and returns a JWT.

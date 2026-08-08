@@ -35,7 +35,7 @@ VALUES (?, ?, ?, ?);
 -- SQLC generates:
 -- UpdateMerchantCommission(ctx, params)
 
--- name: UpdateMerchantCommission :exec
+-- name: UpdateMerchantCommission :execrows
 UPDATE merchants
 SET commission = ?
 WHERE id = ?;

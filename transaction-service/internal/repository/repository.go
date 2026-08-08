@@ -10,13 +10,17 @@ import (
 
 // Repository wraps SQLC queries for transaction persistence.
 type Repository struct {
-	queries *sqlc.Queries
+	queries    *sqlc.Queries
+	db         *sql.DB
+	customerDB string
+	merchantDB string
 }
 
 // New creates a Repository from a database connection.
 func New(db *sql.DB) *Repository {
 	return &Repository{
 		queries: sqlc.New(db),
+		db:      db,
 	}
 }
 

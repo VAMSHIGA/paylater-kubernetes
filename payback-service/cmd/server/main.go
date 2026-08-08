@@ -1,10 +1,4 @@
 // Command server is the Payback Service process entry point.
-//
-// Startup flow:
-//  1. Load configuration (port 8085, payback_db, JWT secret).
-//  2. Connect to MySQL.
-//  3. Wire repository → service → handler → router.
-//  4. Listen for HTTP requests on the configured port.
 package main
 
 import (
@@ -18,6 +12,8 @@ import (
 	"paylater/payback-service/internal/service"
 	"paylater/shared/config"
 	"paylater/shared/database"
+	"paylater/shared/health"
+	"paylater/shared/server"
 )
 
 func main() {
@@ -37,12 +33,13 @@ func main() {
 	paybackHandler := handler.NewPaybackHandler(paybackService)
 
 	engine := gin.Default()
+	health.Register(engine)
 	router.PaybackRoutes(engine, paybackHandler)
 
 	addr := ":" + cfg.Server.Port
 	log.Printf("Payback Service started on %s", addr)
 
-	if err := engine.Run(addr); err != nil {
+	if err := server.Run(engine, addr); err != nil {
 		log.Fatal(err)
 	}
 }

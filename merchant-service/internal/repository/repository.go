@@ -32,6 +32,6 @@ func (r *Repository) CreateMerchant(
 func (r *Repository) UpdateMerchantCommission(
 	ctx context.Context,
 	params sqlc.UpdateMerchantCommissionParams,
-) error {
+) (int64, error) {
 	return r.queries.UpdateMerchantCommission(ctx, params)
 }

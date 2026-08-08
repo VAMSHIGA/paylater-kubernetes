@@ -66,7 +66,7 @@ func (h *CustomerHandler) CreateCustomer(c *gin.Context) {
 	if err != nil {
 
 		// Return error if customer creation fails
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *CustomerHandler) ListCustomers(c *gin.Context) {
 	if err != nil {
 
 		// Return error if database operation fails
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.InternalError(c, err)
 		return
 	}
 

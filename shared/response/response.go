@@ -8,6 +8,7 @@
 package response
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,4 +36,10 @@ func ValidationError(c *gin.Context, message string) {
 // JSON writes arbitrary JSON with the given status code (lists, tokens, reports).
 func JSON(c *gin.Context, status int, payload interface{}) {
 	c.JSON(status, payload)
+}
+
+// InternalError logs the underlying error and returns a generic 500 response.
+func InternalError(c *gin.Context, err error) {
+	log.Printf("internal error: %v", err)
+	Error(c, http.StatusInternalServerError, "internal server error")
 }
