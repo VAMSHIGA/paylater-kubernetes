@@ -286,16 +286,16 @@ Microservice images are built from the **repository root** so the `paylater/shar
 
 ### Services
 
-| Compose service | Container | Port | Image / build |
-|-----------------|-----------|------|---------------|
-| `mysql` | `paylater-mysql` | 3306 | `mysql:8.4` |
-| `identity-service` | `paylater-identity` | 8081 | `identity-service/Dockerfile` |
-| `customer-service` | `paylater-customer` | 8082 | `customer-service/Dockerfile` |
-| `merchant-service` | `paylater-merchant` | 8083 | `merchant-service/Dockerfile` |
-| `transaction-service` | `paylater-transaction` | 8084 | `transaction-service/Dockerfile` |
-| `payback-service` | `paylater-payback` | 8085 | `payback-service/Dockerfile` |
-| `reporting-service` | `paylater-reporting` | 8086 | `reporting-service/Dockerfile` |
-| `api-gateway` | `paylater-gateway` | 8080 | root `Dockerfile` |
+| Compose service | Container | Port | Docker Hub image |
+|-----------------|-----------|------|------------------|
+| `mysql` | `paylater-mysql` | 3308 (host) | `mysql:8.4` |
+| `identity-service` | `paylater-identity` | 8081 | `galinkivamshi/paylater-identity-service:latest` |
+| `customer-service` | `paylater-customer` | 8082 | `galinkivamshi/paylater-customer-service:latest` |
+| `merchant-service` | `paylater-merchant` | 8083 | `galinkivamshi/paylater-merchant-service:latest` |
+| `transaction-service` | `paylater-transaction` | 8084 | `galinkivamshi/paylater-transaction-service:latest` |
+| `payback-service` | `paylater-payback` | 8085 | `galinkivamshi/paylater-payback-service:latest` |
+| `reporting-service` | `paylater-reporting` | 8086 | `galinkivamshi/paylater-reporting-service:latest` |
+| `api-gateway` | `paylater-gateway` | 8080 | `galinkivamshi/paylater-api-gateway:latest` |
 
 MySQL mounts each service's `docs/migrations/001_create_*_database.sql` into `/docker-entrypoint-initdb.d/` to create all six databases and tables on first start.
 
@@ -527,8 +527,19 @@ Use the returned token for protected endpoints: `Authorization: Bearer <token>`.
 
 - Docker Engine
 - Docker Compose plugin (`docker compose`)
+- No Go installation required — application images are published on Docker Hub
 
-### 1. Create root `.env`
+### Quick start (clone + pull)
+
+```bash
+git clone https://github.com/VAMSHIGA/paylater-microservices-docker.git
+cd paylater-microservices-docker
+
+# Required: create .env BEFORE running docker compose pull or up
+cp .env.example .env
+```
+
+Edit `.env` and replace the placeholder values with your own secrets:
 
 ```env
 MYSQL_ROOT_PASSWORD=your_secure_mysql_password
@@ -537,36 +548,39 @@ DB_USER=root
 MYSQL_PORT=3308
 ```
 
-### 2. Build images individually (optional)
+Then pull and start the published images (no local build required):
 
 ```bash
-docker build -t paylater-api-gateway .
-docker build -f identity-service/Dockerfile -t paylater-identity-service .
-docker build -f customer-service/Dockerfile -t paylater-customer-service .
-docker build -f merchant-service/Dockerfile -t paylater-merchant-service .
-docker build -f transaction-service/Dockerfile -t paylater-transaction-service .
-docker build -f payback-service/Dockerfile -t paylater-payback-service .
-docker build -f reporting-service/Dockerfile -t paylater-reporting-service .
-```
-
-### 3. Start the full stack
-
-```bash
-docker compose up --build
+docker compose pull
+docker compose up -d
+docker compose ps
 ```
 
 Gateway: **http://localhost:8080**
+
+Verify health:
+
+```bash
+curl http://localhost:8080/health
+# {"status":"ok"}
+```
+
+> **Important:** If you run `docker compose pull` or `docker compose up` **before** creating `.env`, Compose will warn that `MYSQL_ROOT_PASSWORD` and `JWT_SECRET` are not set. This is expected — create `.env` first.
+
+### Build from source (optional, for developers)
+
+```bash
+docker compose up -d --build
+```
 
 ---
 
 ## Docker Compose Commands
 
 ```bash
-# Build and start all services (foreground)
-docker compose up --build
-
-# Build and start in detached mode
-docker compose up -d --build
+# Pull published images and start (recommended)
+docker compose pull
+docker compose up -d
 
 # Stop and remove containers
 docker compose down
@@ -578,11 +592,86 @@ docker compose logs
 docker compose logs -f
 
 # List running containers
-docker ps
-
-# List images
-docker images
+docker compose ps
 ```
+
+---
+
+## Troubleshooting
+
+### `MYSQL_ROOT_PASSWORD` / `JWT_SECRET` variable is not set
+
+**Cause:** `.env` does not exist yet. Compose reads variables from a root `.env` file automatically.
+
+**Fix:**
+
+```bash
+cp .env.example .env
+# Edit .env and set MYSQL_ROOT_PASSWORD and JWT_SECRET
+```
+
+### `error getting credentials - err: exit status 1`
+
+**Cause:** Local Docker credential helper misconfiguration (Docker Desktop, WSL, or `~/.docker/config.json`). This is not an application issue.
+
+**Fix (try in order):**
+
+1. Restart Docker Desktop / Docker Engine.
+2. On WSL, ensure Docker Desktop WSL integration is enabled.
+3. Remove a broken credential helper from `~/.docker/config.json` (e.g. `"credsStore": "desktop"`).
+4. Test a public pull: `docker pull galinkivamshi/paylater-customer-service:latest` — **no Docker Hub login is required** for these images.
+
+### `container name "/paylater-mysql" is already in use`
+
+**Cause:** A previous PayLater run left containers behind (failed run, different clone directory, or `docker compose down` was not run).
+
+**Fix:**
+
+```bash
+docker compose down
+# If containers remain:
+docker rm -f paylater-mysql paylater-identity paylater-customer paylater-merchant \
+  paylater-transaction paylater-payback paylater-reporting paylater-gateway
+docker compose up -d
+```
+
+`container_name:` is intentional for predictable naming; remove stale containers rather than changing the Compose file.
+
+### Services show `unhealthy` / gateway does not start
+
+**Cause:** Usually a stale Docker Hub image cached locally (built before `/health` endpoints were added).
+
+**Fix:**
+
+```bash
+docker compose down
+docker compose pull
+docker compose up -d
+```
+
+Inspect a failing service:
+
+```bash
+docker inspect paylater-identity --format '{{json .State.Health}}'
+docker compose logs identity-service --tail=50
+curl http://localhost:8081/health
+```
+
+Expected: `{"status":"ok"}` with HTTP 200.
+
+### `network paylater-network was found but was not created by compose`
+
+**Cause:** A stale `paylater-network` exists from a manual `docker network create` or an old project.
+
+**Fix:**
+
+```bash
+docker compose down
+docker network rm paylater-network
+docker compose up -d
+```
+
+Compose will recreate the network with the correct labels automatically.
 
 ---
 
