@@ -19,10 +19,14 @@ var (
 
 // Authorization errors returned by AuthMiddleware and AuthorizeRoles.
 var (
-	ErrAuthorizationHeaderRequired    = errors.New("Authorization header is required")
-	ErrAuthorizationHeaderBearerToken = errors.New("Authorization header must use Bearer token")
-	ErrInvalidOrExpiredToken          = errors.New("Invalid or expired token")
-	ErrUserRoleNotFound               = errors.New("User role not found")
-	ErrInvalidUserRole                = errors.New("Invalid user role")
-	ErrNotAuthorized                  = errors.New("You are not authorized to access this resource")
+	ErrAuthorizationHeaderRequired     = errors.New("Authorization header is required")
+	ErrAuthorizationHeaderBearerToken  = errors.New("Authorization header must use Bearer token")
+	ErrInvalidOrExpiredToken           = errors.New("Invalid or expired token")
+	ErrUserRoleNotFound                = errors.New("User role not found")
+	ErrInvalidUserRole                 = errors.New("Invalid user role")
+	ErrNotAuthorized                   = errors.New("You are not authorized to access this resource")
+	ErrAdminSelfRegistrationNotAllowed = errors.New("You are not authorized to register as admin")
+	ErrCreditLimitExceeded             = errors.New("transaction amount exceeds available credit limit")
+	ErrPaybackExceedsRemainingDue      = errors.New("payback amount exceeds remaining due")
+	ErrInvalidPaybackAmount            = errors.New("amount must be greater than zero")
 )

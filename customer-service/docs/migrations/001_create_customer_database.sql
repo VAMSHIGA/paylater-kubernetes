@@ -11,7 +11,9 @@ USE customer_db;
 
 CREATE TABLE IF NOT EXISTS customers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NULL,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    credit_limit DECIMAL(10,2) NOT NULL
+    credit_limit DECIMAL(10,2) NOT NULL,
+    UNIQUE KEY idx_customers_user_id (user_id)
 );

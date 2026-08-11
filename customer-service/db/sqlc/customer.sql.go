@@ -15,14 +15,16 @@ const createCustomer = `-- name: CreateCustomer :execresult
 
 
 INSERT INTO customers (
+    user_id,
     name,
     email,
     credit_limit
 )
-VALUES (?, ?, ?)
+VALUES (?, ?, ?, ?)
 `
 
 type CreateCustomerParams struct {
+	UserID      sql.NullInt64
 	Name        string
 	Email       string
 	CreditLimit string
@@ -37,18 +39,46 @@ type CreateCustomerParams struct {
 // Create Customer
 // ===========================
 // Creates a new customer with:
-// name, email and credit limit.
+// name, email, credit limit, and optional identity user_id link.
 //
 // SQLC generates:
 // CreateCustomer(ctx, params)
 func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createCustomer, arg.Name, arg.Email, arg.CreditLimit)
+	return q.db.ExecContext(ctx, createCustomer,
+		arg.UserID,
+		arg.Name,
+		arg.Email,
+		arg.CreditLimit,
+	)
+}
+
+const getCustomerIDByUserID = `-- name: GetCustomerIDByUserID :one
+
+SELECT id
+FROM customers
+WHERE user_id = ?
+LIMIT 1
+`
+
+// ===========================
+// Get Customer ID By User ID
+// ===========================
+// Resolves the customer profile owned by an identity user.
+//
+// SQLC generates:
+// GetCustomerIDByUserID(ctx, user_id)
+func (q *Queries) GetCustomerIDByUserID(ctx context.Context, userID sql.NullInt64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCustomerIDByUserID, userID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const listCustomers = `-- name: ListCustomers :many
 
 SELECT
     id,
+    user_id,
     name,
     email,
     credit_limit
@@ -77,6 +107,7 @@ func (q *Queries) ListCustomers(ctx context.Context) ([]Customer, error) {
 		var i Customer
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
 			&i.Name,
 			&i.Email,
 			&i.CreditLimit,

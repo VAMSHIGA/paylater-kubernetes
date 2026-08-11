@@ -11,6 +11,7 @@ import (
 	"paylater/payback-service/internal/router"
 	"paylater/payback-service/internal/service"
 	"paylater/shared/config"
+	"paylater/shared/customerauth"
 	"paylater/shared/database"
 	"paylater/shared/health"
 	"paylater/shared/server"
@@ -30,7 +31,8 @@ func main() {
 
 	repo := repository.New(conn)
 	paybackService := service.NewPaybackService(repo)
-	paybackHandler := handler.NewPaybackHandler(paybackService)
+	ownershipResolver := customerauth.NewDBResolver(conn)
+	paybackHandler := handler.NewPaybackHandler(paybackService, ownershipResolver)
 
 	engine := gin.Default()
 	health.Register(engine)

@@ -1,17 +1,21 @@
 // Package handler contains HTTP handlers for Payback Service APIs.
 //
 // POST /paybacks records a customer repayment. Access is admin or customer.
-// payment_date must be YYYY-MM-DD. Outstanding-balance checks are intentionally
-// not applied here (preserve legacy create-only behavior).
+// payment_date must be YYYY-MM-DD. Customer-role callers cannot repay more
+// than their outstanding due.
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"paylater/payback-service/db/sqlc"
 	"paylater/payback-service/internal/service"
+	"paylater/shared/constants"
+	"paylater/shared/customerauth"
+	platformerrors "paylater/shared/errors"
 	"paylater/shared/response"
 	"paylater/shared/validator"
 )
@@ -26,16 +30,19 @@ type CreatePaybackRequest struct {
 
 // PaybackHandler handles all payback-related HTTP requests.
 type PaybackHandler struct {
-	service *service.PaybackService
+	service           *service.PaybackService
+	ownershipResolver customerauth.Resolver
 }
 
 // NewPaybackHandler creates a new PaybackHandler.
 func NewPaybackHandler(
-	service *service.PaybackService,
+	paybackService *service.PaybackService,
+	ownershipResolver customerauth.Resolver,
 ) *PaybackHandler {
 
 	return &PaybackHandler{
-		service: service,
+		service:           paybackService,
+		ownershipResolver: ownershipResolver,
 	}
 }
 
@@ -46,6 +53,13 @@ func (h *PaybackHandler) CreatePayback(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
+		return
+	}
+
+	if customerauth.WriteOwnershipError(
+		c,
+		customerauth.EnforceCustomerAccessFromContext(c, req.CustomerID, h.ownershipResolver),
+	) {
 		return
 	}
 
@@ -65,12 +79,39 @@ func (h *PaybackHandler) CreatePayback(c *gin.Context) {
 	err = h.service.CreatePayback(
 		c.Request.Context(),
 		params,
+		callerRole(c),
 	)
 
 	if err != nil {
+		if errors.Is(err, service.ErrCustomerNotFound) {
+			response.Error(c, http.StatusNotFound, "customer not found")
+			return
+		}
+		if errors.Is(err, platformerrors.ErrPaybackExceedsRemainingDue) {
+			response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if errors.Is(err, platformerrors.ErrInvalidPaybackAmount) {
+			response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		response.InternalError(c, err)
 		return
 	}
 
 	response.SuccessMessage(c, http.StatusCreated, "Payback created successfully")
+}
+
+func callerRole(c *gin.Context) string {
+	roleValue, exists := c.Get(constants.ContextKeyRole)
+	if !exists {
+		return ""
+	}
+
+	role, ok := roleValue.(string)
+	if !ok {
+		return ""
+	}
+
+	return role
 }

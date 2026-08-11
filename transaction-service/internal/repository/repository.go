@@ -2,7 +2,6 @@
 package repository
 
 import (
-	"context"
 	"database/sql"
 
 	"paylater/transaction-service/db/sqlc"
@@ -10,10 +9,12 @@ import (
 
 // Repository wraps SQLC queries for transaction persistence.
 type Repository struct {
-	queries    *sqlc.Queries
-	db         *sql.DB
-	customerDB string
-	merchantDB string
+	queries       *sqlc.Queries
+	db            *sql.DB
+	customerDB    string
+	merchantDB    string
+	transactionDB string
+	paybackDB     string
 }
 
 // New creates a Repository from a database connection.
@@ -22,12 +23,4 @@ func New(db *sql.DB) *Repository {
 		queries: sqlc.New(db),
 		db:      db,
 	}
-}
-
-// CreateTransaction inserts a new transaction record.
-func (r *Repository) CreateTransaction(
-	ctx context.Context,
-	params sqlc.CreateTransactionParams,
-) (sql.Result, error) {
-	return r.queries.CreateTransaction(ctx, params)
 }

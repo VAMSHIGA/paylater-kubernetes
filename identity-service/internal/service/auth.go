@@ -14,11 +14,16 @@ import (
 
 	"paylater/identity-service/db/sqlc"
 	"paylater/identity-service/internal/repository"
+	"paylater/shared/constants"
+	platformerrors "paylater/shared/errors"
 	"paylater/shared/jwt"
 )
 
 // ErrEmailAlreadyExists is returned when registration uses an email that already exists.
 var ErrEmailAlreadyExists = errors.New("email already registered")
+
+// ErrInvalidRegistrationRole is returned when registration uses a disallowed role.
+var ErrInvalidRegistrationRole = errors.New("invalid registration role")
 
 // AuthService contains authentication business logic for register and login.
 type AuthService struct {
@@ -41,6 +46,13 @@ func (s *AuthService) Register(
 	password string,
 	role string,
 ) error {
+	if role == constants.RoleAdmin {
+		return platformerrors.ErrAdminSelfRegistrationNotAllowed
+	}
+
+	if role != constants.RoleCustomer && role != constants.RoleMerchant {
+		return ErrInvalidRegistrationRole
+	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(password),

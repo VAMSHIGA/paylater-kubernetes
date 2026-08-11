@@ -122,7 +122,8 @@ See `docs/DEVELOPMENT.md` for the full developer workflow and `reporting-service
 paylater/
 ├── main.go                      # API Gateway entry point
 ├── Dockerfile                   # API Gateway container image
-├── docker-compose.yml           # Full stack orchestration
+├── docker-compose.yml           # Full stack orchestration (gateway-only host ports)
+├── docker-compose.dev.yml       # Dev overrides (MySQL + microservice host ports)
 ├── .dockerignore                # Docker build context filter
 ├── go.mod / go.sum              # Root module (gateway)
 ├── config/
@@ -284,18 +285,33 @@ Microservice images are built from the **repository root** so the `paylater/shar
 
 `docker-compose.yml` defines **8 services** on the `paylater-network` network.
 
+### Port exposure (production-style vs development)
+
+The base `docker-compose.yml` is hardened for deployment: **only the API Gateway (`8080`) is published to the host**. MySQL and all microservices communicate on the internal Docker network only.
+
+For local development (host MySQL access, direct service debugging), use the optional override file:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+| Configuration | Host ports | Use case |
+|---------------|------------|----------|
+| `docker-compose.yml` only | `8080` (gateway) | Production-style / minimal exposure |
+| `+ docker-compose.dev.yml` | `8080`, `3308` (MySQL), `8081`–`8086` | Local dev, integration tests, admin bootstrap |
+
 ### Services
 
-| Compose service | Container | Port | Docker Hub image |
-|-----------------|-----------|------|------------------|
-| `mysql` | `paylater-mysql` | 3308 (host) | `mysql:8.4` |
-| `identity-service` | `paylater-identity` | 8081 | `galinkivamshi/paylater-identity-service:latest` |
-| `customer-service` | `paylater-customer` | 8082 | `galinkivamshi/paylater-customer-service:latest` |
-| `merchant-service` | `paylater-merchant` | 8083 | `galinkivamshi/paylater-merchant-service:latest` |
-| `transaction-service` | `paylater-transaction` | 8084 | `galinkivamshi/paylater-transaction-service:latest` |
-| `payback-service` | `paylater-payback` | 8085 | `galinkivamshi/paylater-payback-service:latest` |
-| `reporting-service` | `paylater-reporting` | 8086 | `galinkivamshi/paylater-reporting-service:latest` |
-| `api-gateway` | `paylater-gateway` | 8080 | `galinkivamshi/paylater-api-gateway:latest` |
+| Compose service | Container | Internal port | Host port (base) | Host port (dev override) | Docker Hub image |
+|-----------------|-----------|---------------|------------------|--------------------------|------------------|
+| `mysql` | `paylater-mysql` | 3306 | — | `${MYSQL_PORT:-3308}` | `mysql:8.4` |
+| `identity-service` | `paylater-identity` | 8081 | — | 8081 | `galinkivamshi/paylater-identity-service:latest` |
+| `customer-service` | `paylater-customer` | 8082 | — | 8082 | `galinkivamshi/paylater-customer-service:latest` |
+| `merchant-service` | `paylater-merchant` | 8083 | — | 8083 | `galinkivamshi/paylater-merchant-service:latest` |
+| `transaction-service` | `paylater-transaction` | 8084 | — | 8084 | `galinkivamshi/paylater-transaction-service:latest` |
+| `payback-service` | `paylater-payback` | 8085 | — | 8085 | `galinkivamshi/paylater-payback-service:latest` |
+| `reporting-service` | `paylater-reporting` | 8086 | — | 8086 | `galinkivamshi/paylater-reporting-service:latest` |
+| `api-gateway` | `paylater-gateway` | 8080 | 8080 | 8080 | `galinkivamshi/paylater-api-gateway:latest` |
 
 MySQL mounts each service's `docs/migrations/001_create_*_database.sql` into `/docker-entrypoint-initdb.d/` to create all six databases and tables on first start.
 
@@ -319,6 +335,19 @@ MYSQL_PORT=3308
 ```
 
 Microservices receive `DB_HOST=mysql`, `DB_PASSWORD=${MYSQL_ROOT_PASSWORD}`, and `JWT_SECRET` from Compose. The gateway receives `*_SERVICE_URL` values pointing at Docker service hostnames.
+
+### Security hardening
+
+| Control | Implementation |
+|---------|----------------|
+| **Port exposure** | Base compose publishes only gateway `:8080`; dev override adds MySQL/microservice ports |
+| **Internal networking** | All services on `paylater-network`; inter-service URLs use Docker DNS (`mysql`, `identity-service`, etc.) |
+| **Container users** | Go services run as non-root `appuser` (UID 10001) in Alpine runtime images |
+| **Secrets** | `MYSQL_ROOT_PASSWORD`, `JWT_SECRET` supplied via `.env` (gitignored); never committed |
+| **Healthchecks** | MySQL `mysqladmin ping`; Go services `GET /health` via `wget` |
+| **Startup order** | `depends_on` with `condition: service_healthy` for MySQL and gateway upstreams |
+| **Restart policy** | `unless-stopped` on all services (survives daemon restart; does not restart on manual stop) |
+| **Data persistence** | Named volume `mysql_data`; no destructive volume commands in compose |
 
 ---
 
@@ -505,16 +534,120 @@ Gateway: **http://localhost:8080**
 
 ### 6. Test
 
+#### Backend unit tests
+
 ```bash
-# Register
+cd shared && go test ./... -count=1
+cd ../identity-service && go test ./... -count=1
+cd ../customer-service && go test ./... -count=1
+cd ../merchant-service && go test ./... -count=1
+cd ../transaction-service && go test ./... -count=1
+cd ../payback-service && go test ./... -count=1
+cd ../reporting-service && go test ./... -count=1
+cd .. && go test ./... -count=1
+```
+
+#### Backend integration tests (MySQL required)
+
+Integration tests use isolated `paylater_it_*` transaction/payback databases and require a running MySQL instance.
+
+```bash
+export INTEGRATION_TEST_MYSQL_HOST=127.0.0.1
+export INTEGRATION_TEST_MYSQL_PORT=3308
+export INTEGRATION_TEST_MYSQL_PASSWORD=your_mysql_root_password
+
+cd transaction-service && go test -tags=integration ./internal/repository -count=1
+cd ../payback-service && go test -tags=integration ./internal/repository -count=1
+```
+
+If MySQL is unavailable, integration tests are skipped locally but **CI fails** when MySQL cannot be reached.
+
+#### Frontend tests
+
+```bash
+cd paylater-frontend
+npm ci
+npm run test -- --run
+npm run build
+npm run lint
+```
+
+#### Docker Compose validation
+
+```bash
+docker compose config -q
+```
+
+#### CI
+
+GitHub Actions workflow: `.github/workflows/ci.yml`
+
+Runs on every push and pull request:
+
+- backend unit tests and builds for all Go modules
+- MySQL-backed integration tests (`-tags=integration`)
+- frontend test/build/lint
+- `docker compose config -q`
+- OpenAPI validation (`docs/openapi.yaml` via `@redocly/cli`)
+
+#### API documentation
+
+OpenAPI 3.0 specification: [`docs/openapi.yaml`](docs/openapi.yaml)
+
+Describes the API Gateway contract at `http://localhost:8080`, including authentication, customers, merchants, transactions, paybacks, reports, and JWT bearer security.
+
+#### Public registration and login
+
+Public `POST /auth/register` accepts **customer** and **merchant** roles only. Admin self-registration is forbidden.
+
+```bash
+# Customer registration
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"customer@example.com","password":"secret12","role":"customer"}'
+
+# Admin self-registration is rejected
 curl -X POST http://localhost:8080/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"secret12","role":"admin"}'
+# -> 403 "You are not authorized to register as admin"
+```
 
-# Login
+#### Provision the first admin (operator only)
+
+Use the Identity Service bootstrap command. This is **not** exposed over HTTP.
+
+```bash
+cd identity-service
+
+export DB_HOST=127.0.0.1
+export DB_PORT=3308
+export DB_USER=root
+export DB_PASSWORD=your_mysql_root_password
+export DB_NAME=identity_db
+export JWT_SECRET=your_jwt_secret
+
+export ADMIN_BOOTSTRAP_EMAIL=admin@example.com
+export ADMIN_BOOTSTRAP_PASSWORD='choose-a-strong-password'
+
+go run ./cmd/admin-bootstrap
+```
+
+Or pass flags explicitly:
+
+```bash
+go run ./cmd/admin-bootstrap \
+  --email admin@example.com \
+  --password 'choose-a-strong-password'
+```
+
+The command validates email/password, bcrypt-hashes the password, creates `role=admin`, and never prints the password. If the email already exists, it exits with `admin user already exists`.
+
+```bash
+# Login after bootstrap
 curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"secret12"}'
+  -d '{"email":"admin@example.com","password":"choose-a-strong-password"}'
 ```
 
 Use the returned token for protected endpoints: `Authorization: Bearer <token>`.
@@ -551,8 +684,13 @@ MYSQL_PORT=3308
 Then pull and start the published images (no local build required):
 
 ```bash
-docker compose pull
+# Production-style (gateway only on host)
+docker compose pull   # optional — `docker compose up -d` also pulls automatically
 docker compose up -d
+
+# Local development (also exposes MySQL :3308 and microservice ports)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
 docker compose ps
 ```
 
@@ -570,7 +708,8 @@ curl http://localhost:8080/health
 ### Build from source (optional, for developers)
 
 ```bash
-docker compose up -d --build
+# With dev port overrides (recommended for local work)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
 ---
@@ -639,7 +778,13 @@ docker compose up -d
 
 ### Services show `unhealthy` / gateway does not start
 
-**Cause:** Usually a stale Docker Hub image cached locally (built before `/health` endpoints were added).
+**Cause:** Usually a **stale locally cached** `:latest` image (built before `/health` endpoints were added). Docker Compose does not re-pull `:latest` by default if an older copy exists on disk. This often affects merchant, transaction, payback, and reporting while customer/identity appear healthy.
+
+**Healthcheck failure looks like:**
+
+```text
+wget: server returned error: HTTP/1.1 404 Not Found
+```
 
 **Fix:**
 
@@ -648,6 +793,8 @@ docker compose down
 docker compose pull
 docker compose up -d
 ```
+
+Or simply `docker compose up -d` — the Compose file sets `pull_policy: always` so images are refreshed on every start.
 
 Inspect a failing service:
 
@@ -689,7 +836,7 @@ Screenshot placeholders were removed from this README. Add images under `docs/sc
 ## Known Limitations
 
 - Transaction creation validates `customer_id` and `merchant_id` via same-MySQL cross-database reads; this assumes all databases run on one MySQL server (Docker Compose default).
-- Credit-limit enforcement at transaction time is **not implemented** — reports can show customers at their limit, but transactions are not blocked automatically.
+- Credit-limit enforcement and payback balance validation are enforced in Transaction and Payback services (Steps 36–37).
 - `report_db` is refreshed on startup and every 60 seconds; there is a small window for concurrent writes during snapshot copy.
 - No list GET endpoints for transactions or paybacks.
 - Merchant update (`PUT /merchants/:id`) returns 404 when the merchant does not exist.
@@ -702,9 +849,7 @@ Screenshot placeholders were removed from this README. Add images under `docs/sc
 - Event-driven snapshot refresh for high-traffic reporting
 - Return created entity IDs in POST responses
 - Add list/query endpoints for transactions and paybacks
-- Add integration tests and CI pipeline
 - Add OpenAPI/Swagger documentation
-- Credit-limit enforcement at transaction time (product decision required)
 
 ---
 
@@ -717,5 +862,6 @@ This project does not include a `LICENSE` file yet. Add a license before public 
 ## Additional Documentation
 
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — Developer workflow, SQLC, Docker, local setup
+- [`docs/openapi.yaml`](docs/openapi.yaml) — OpenAPI 3.0 API contract (gateway)
 - [`shared/README.md`](shared/README.md) — Shared module details
 - Per-service `README.md` and `docs/` folders — Service-specific notes

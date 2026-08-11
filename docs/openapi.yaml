@@ -1,0 +1,661 @@
+openapi: 3.0.3
+info:
+  title: PayLater API
+  description: |
+    PayLater API Gateway contract (port 8080).
+
+    All protected routes require `Authorization: Bearer <JWT>` unless noted otherwise.
+
+    Role rules:
+    - `admin` — full administrative access where documented
+    - `customer` — transaction/payback with customer ownership enforcement
+    - `merchant` — merchant onboarding only; blocked from transaction/payback APIs
+
+    Public `POST /auth/register` accepts `customer` and `merchant` only.
+    `role=admin` self-registration returns 403.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local API Gateway
+
+tags:
+  - name: Health
+  - name: Authentication
+  - name: Customers
+  - name: Merchants
+  - name: Transactions
+  - name: Paybacks
+  - name: Reports
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Gateway health check
+      operationId: getGatewayHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a customer or merchant account
+      description: |
+        Public endpoint. `role=admin` is rejected with 403
+        (`You are not authorized to register as admin`).
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          description: Admin self-registration forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login and obtain JWT
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List customers
+      description: Admin only.
+      operationId: listCustomers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Customers]
+      summary: Create customer
+      description: Admin only.
+      operationId: createCustomer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /merchants:
+    post:
+      tags: [Merchants]
+      summary: Onboard merchant
+      description: Admin or merchant role.
+      operationId: createMerchant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMerchantRequest'
+      responses:
+        '201':
+          description: Merchant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /merchants/{id}:
+    put:
+      tags: [Merchants]
+      summary: Update merchant commission
+      description: Admin only.
+      operationId: updateMerchantCommission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMerchantCommissionRequest'
+      responses:
+        '200':
+          description: Commission updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Merchant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /transactions:
+    post:
+      tags: [Transactions]
+      summary: Create transaction
+      description: |
+        Admin or customer role.
+
+        Customer role:
+        - `customer_id` must belong to the authenticated user (403 otherwise)
+        - credit limit enforced (400 when exceeded)
+
+        Admin bypasses ownership and credit-limit enforcement.
+      operationId: createTransaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Validation error or credit limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Customer or merchant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /paybacks:
+    post:
+      tags: [Paybacks]
+      summary: Create payback
+      description: |
+        Admin or customer role.
+
+        Customer role:
+        - `customer_id` must belong to the authenticated user (403 otherwise)
+        - payback amount must be positive and not exceed remaining due (400)
+
+        Admin bypasses ownership and remaining-due validation.
+      operationId: createPayback
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaybackRequest'
+      responses:
+        '201':
+          description: Payback created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Validation error or payback exceeds remaining due
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/merchant-fees:
+    get:
+      tags: [Reports]
+      summary: Merchant fee report
+      description: Admin only.
+      operationId: getMerchantFees
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Merchant fees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MerchantFee'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/customer-dues:
+    get:
+      tags: [Reports]
+      summary: Customer dues report
+      description: Admin only.
+      operationId: getCustomerDues
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customer dues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerDue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/credit-limit:
+    get:
+      tags: [Reports]
+      summary: Customers at credit limit
+      description: Admin only.
+      operationId: getCreditLimitReport
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customers at or over credit limit
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CreditLimitCustomer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/total-dues:
+    get:
+      tags: [Reports]
+      summary: Total system dues
+      description: Admin only.
+      operationId: getTotalDues
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Total remaining dues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotalDues'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT obtained from POST /auth/login
+
+  responses:
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Role or ownership not authorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, password, role]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [customer, merchant, admin]
+          description: Only customer and merchant are accepted; admin returns 403.
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: HS256 JWT (24h expiry)
+
+    User:
+      type: object
+      description: JWT claims (not returned directly by API; documented for client reference)
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, customer, merchant]
+
+    Customer:
+      type: object
+      description: |
+        GET /customers response item. Go serializes sqlc struct fields using PascalCase.
+      properties:
+        ID:
+          type: integer
+          format: int64
+        Name:
+          type: string
+        Email:
+          type: string
+          format: email
+        CreditLimit:
+          type: string
+          description: DECIMAL serialized as string
+
+    CreateCustomerRequest:
+      type: object
+      required: [name, email, credit_limit]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        credit_limit:
+          type: string
+          description: DECIMAL amount as string
+        user_id:
+          type: integer
+          format: int64
+          nullable: true
+
+    CreateMerchantRequest:
+      type: object
+      required: [merchant_name, phone_number, onboarding, commission]
+      properties:
+        merchant_name:
+          type: string
+        phone_number:
+          type: string
+        onboarding:
+          type: string
+          format: date
+          description: YYYY-MM-DD
+        commission:
+          type: string
+
+    UpdateMerchantCommissionRequest:
+      type: object
+      required: [commission]
+      properties:
+        commission:
+          type: string
+
+    CreateTransactionRequest:
+      type: object
+      required: [customer_id, merchant_id, amount, commission, transaction_date]
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+        merchant_id:
+          type: integer
+          format: int64
+        amount:
+          type: string
+        commission:
+          type: string
+        transaction_date:
+          type: string
+          format: date
+          description: YYYY-MM-DD
+
+    CreatePaybackRequest:
+      type: object
+      required: [customer_id, amount, payment_date]
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+        amount:
+          type: string
+        payment_date:
+          type: string
+          format: date
+          description: YYYY-MM-DD
+
+    MerchantFee:
+      type: object
+      description: GET /reports/merchant-fees row (PascalCase from Go sqlc)
+      properties:
+        MerchantName:
+          type: string
+        Commission:
+          type: string
+
+    CustomerDue:
+      type: object
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        total_transaction:
+          type: string
+        total_repaid:
+          type: string
+        remaining_due:
+          type: string
+
+    CreditLimitCustomer:
+      type: object
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        credit_limit:
+          type: string
+        remaining_due:
+          type: string
+
+    TotalDues:
+      type: object
+      required: [total_dues]
+      properties:
+        total_dues:
+          type: string

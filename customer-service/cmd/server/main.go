@@ -2,11 +2,13 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gin-gonic/gin"
 
 	"paylater/customer-service/internal/handler"
+	"paylater/customer-service/internal/migrate"
 	"paylater/customer-service/internal/repository"
 	"paylater/customer-service/internal/router"
 	"paylater/customer-service/internal/service"
@@ -27,6 +29,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer conn.Close()
+
+	if err := migrate.ApplyUserIDLinkage(context.Background(), conn, ""); err != nil {
+		log.Fatalf("customer ownership migration failed: %v", err)
+	}
 
 	repo := repository.New(conn)
 	customerService := service.NewCustomerService(repo)

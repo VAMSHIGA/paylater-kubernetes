@@ -4,8 +4,13 @@
 
 package sqlc
 
+import (
+	"database/sql"
+)
+
 type Customer struct {
 	ID          int64
+	UserID      sql.NullInt64
 	Name        string
 	Email       string
 	CreditLimit string

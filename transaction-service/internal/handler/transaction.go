@@ -10,6 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"paylater/shared/constants"
+	"paylater/shared/customerauth"
+	platformerrors "paylater/shared/errors"
 	"paylater/shared/response"
 	"paylater/shared/validator"
 	"paylater/transaction-service/db/sqlc"
@@ -28,16 +31,19 @@ type CreateTransactionRequest struct {
 
 // TransactionHandler handles transaction-related HTTP requests.
 type TransactionHandler struct {
-	service *service.TransactionService
+	service           *service.TransactionService
+	ownershipResolver customerauth.Resolver
 }
 
 // NewTransactionHandler creates a new TransactionHandler.
 func NewTransactionHandler(
-	service *service.TransactionService,
+	transactionService *service.TransactionService,
+	ownershipResolver customerauth.Resolver,
 ) *TransactionHandler {
 
 	return &TransactionHandler{
-		service: service,
+		service:           transactionService,
+		ownershipResolver: ownershipResolver,
 	}
 }
 
@@ -48,6 +54,13 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
+		return
+	}
+
+	if customerauth.WriteOwnershipError(
+		c,
+		customerauth.EnforceCustomerAccessFromContext(c, req.CustomerID, h.ownershipResolver),
+	) {
 		return
 	}
 
@@ -69,6 +82,7 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	err = h.service.CreateTransaction(
 		c.Request.Context(),
 		params,
+		callerRole(c),
 	)
 
 	if err != nil {
@@ -80,9 +94,27 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 			response.Error(c, http.StatusNotFound, "merchant not found")
 			return
 		}
+		if errors.Is(err, platformerrors.ErrCreditLimitExceeded) {
+			response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		response.InternalError(c, err)
 		return
 	}
 
 	response.SuccessMessage(c, http.StatusCreated, "Transaction created successfully")
+}
+
+func callerRole(c *gin.Context) string {
+	roleValue, exists := c.Get(constants.ContextKeyRole)
+	if !exists {
+		return ""
+	}
+
+	role, ok := roleValue.(string)
+	if !ok {
+		return ""
+	}
+
+	return role
 }

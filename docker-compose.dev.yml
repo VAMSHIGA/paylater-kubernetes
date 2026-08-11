@@ -1,0 +1,39 @@
+# Development overrides — publish MySQL and microservice ports for host debugging.
+#
+# The base docker-compose.yml exposes only the API Gateway (8080) on the host.
+# Use this file when you need direct host access to MySQL or individual services:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Typical local needs:
+#   - MYSQL_PORT=3308  → host integration tests, admin bootstrap, mysql client
+#   - 8081–8086        → direct service debugging (bypass gateway)
+
+services:
+  mysql:
+    ports:
+      - "${MYSQL_PORT:-3308}:3306"
+
+  identity-service:
+    ports:
+      - "8081:8081"
+
+  customer-service:
+    ports:
+      - "8082:8082"
+
+  merchant-service:
+    ports:
+      - "8083:8083"
+
+  transaction-service:
+    ports:
+      - "8084:8084"
+
+  payback-service:
+    ports:
+      - "8085:8085"
+
+  reporting-service:
+    ports:
+      - "8086:8086"

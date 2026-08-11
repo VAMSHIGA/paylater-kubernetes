@@ -9,8 +9,8 @@ import (
 	"context"
 	"errors"
 
+	"paylater/shared/constants"
 	"paylater/transaction-service/db/sqlc"
-	"paylater/transaction-service/internal/repository"
 )
 
 // ErrCustomerNotFound is returned when the customer_id does not exist.
@@ -19,13 +19,23 @@ var ErrCustomerNotFound = errors.New("customer not found")
 // ErrMerchantNotFound is returned when the merchant_id does not exist.
 var ErrMerchantNotFound = errors.New("merchant not found")
 
+type transactionRepository interface {
+	CustomerExists(ctx context.Context, customerID int64) (bool, error)
+	MerchantExists(ctx context.Context, merchantID int64) (bool, error)
+	CreateTransaction(
+		ctx context.Context,
+		params sqlc.CreateTransactionParams,
+		enforceCreditLimit bool,
+	) error
+}
+
 // TransactionService contains the business logic related to PayLater transactions.
 type TransactionService struct {
-	repo *repository.Repository
+	repo transactionRepository
 }
 
 // NewTransactionService creates a new TransactionService.
-func NewTransactionService(repo *repository.Repository) *TransactionService {
+func NewTransactionService(repo transactionRepository) *TransactionService {
 	return &TransactionService{
 		repo: repo,
 	}
@@ -35,6 +45,7 @@ func NewTransactionService(repo *repository.Repository) *TransactionService {
 func (s *TransactionService) CreateTransaction(
 	ctx context.Context,
 	params sqlc.CreateTransactionParams,
+	callerRole string,
 ) error {
 
 	exists, err := s.repo.CustomerExists(ctx, params.CustomerID)
@@ -53,10 +64,7 @@ func (s *TransactionService) CreateTransaction(
 		return ErrMerchantNotFound
 	}
 
-	_, err = s.repo.CreateTransaction(ctx, params)
-	if err != nil {
-		return err
-	}
+	enforceCreditLimit := callerRole == constants.RoleCustomer
 
-	return nil
+	return s.repo.CreateTransaction(ctx, params, enforceCreditLimit)
 }

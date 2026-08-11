@@ -1,14 +1,13 @@
 services:
   mysql:
     image: mysql:8.4
+    pull_policy: always
     container_name: paylater-mysql
     restart: unless-stopped
     networks:
       - paylater-network
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    ports:
-      - "${MYSQL_PORT:-3308}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./identity-service/docs/migrations/001_create_identity_database.sql:/docker-entrypoint-initdb.d/01_identity.sql:ro
@@ -26,6 +25,7 @@ services:
 
   identity-service:
     image: galinkivamshi/paylater-identity-service:${APP_VERSION:-latest}
+    pull_policy: always
     build:
       context: .
       dockerfile: identity-service/Dockerfile
@@ -44,8 +44,6 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: identity_db
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8081:8081"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
       interval: 10s
@@ -55,6 +53,7 @@ services:
 
   customer-service:
     image: galinkivamshi/paylater-customer-service:${APP_VERSION:-latest}
+    pull_policy: always
     build:
       context: .
       dockerfile: customer-service/Dockerfile
@@ -73,8 +72,6 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: customer_db
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8082:8082"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
       interval: 10s
@@ -84,6 +81,7 @@ services:
 
   merchant-service:
     image: galinkivamshi/paylater-merchant-service:${APP_VERSION:-latest}
+    pull_policy: always
     build:
       context: .
       dockerfile: merchant-service/Dockerfile
@@ -102,8 +100,6 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: merchant_db
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8083:8083"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8083/health"]
       interval: 10s
@@ -113,6 +109,7 @@ services:
 
   transaction-service:
     image: galinkivamshi/paylater-transaction-service:${APP_VERSION:-latest}
+    pull_policy: always
     build:
       context: .
       dockerfile: transaction-service/Dockerfile
@@ -131,8 +128,6 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: transaction_db
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8084:8084"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8084/health"]
       interval: 10s
@@ -142,6 +137,7 @@ services:
 
   payback-service:
     image: galinkivamshi/paylater-payback-service:${APP_VERSION:-latest}
+    pull_policy: always
     build:
       context: .
       dockerfile: payback-service/Dockerfile
@@ -160,8 +156,6 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: payback_db
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8085:8085"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8085/health"]
       interval: 10s
@@ -171,6 +165,7 @@ services:
 
   reporting-service:
     image: galinkivamshi/paylater-reporting-service:${APP_VERSION:-latest}
+    pull_policy: always
     build:
       context: .
       dockerfile: reporting-service/Dockerfile
@@ -189,8 +184,6 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: report_db
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8086:8086"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8086/health"]
       interval: 10s
@@ -200,6 +193,7 @@ services:
 
   api-gateway:
     image: galinkivamshi/paylater-api-gateway:${APP_VERSION:-latest}
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile

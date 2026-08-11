@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"paylater/identity-service/internal/service"
+	"paylater/shared/constants"
+	platformerrors "paylater/shared/errors"
 	"paylater/shared/response"
 )
 
@@ -43,12 +45,22 @@ type LoginRequest struct {
 // Register handles POST /auth/register.
 //
 // Validates email, password (min 6), and role (customer|merchant|admin), then
-// delegates account creation to AuthService. Returns 201 on success.
+// rejects public admin self-registration before delegating to AuthService.
+// Returns 201 on success.
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
+		return
+	}
+
+	if req.Role == constants.RoleAdmin {
+		response.Error(
+			c,
+			http.StatusForbidden,
+			platformerrors.ErrAdminSelfRegistrationNotAllowed.Error(),
+		)
 		return
 	}
 
@@ -60,6 +72,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	)
 
 	if err != nil {
+		if errors.Is(err, platformerrors.ErrAdminSelfRegistrationNotAllowed) {
+			response.Error(c, http.StatusForbidden, err.Error())
+			return
+		}
+		if errors.Is(err, service.ErrInvalidRegistrationRole) {
+			response.ValidationError(c, err.Error())
+			return
+		}
 		if errors.Is(err, service.ErrEmailAlreadyExists) {
 			response.Error(c, http.StatusConflict, "email already registered")
 			return

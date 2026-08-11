@@ -2,7 +2,6 @@
 package repository
 
 import (
-	"context"
 	"database/sql"
 
 	"paylater/payback-service/db/sqlc"
@@ -10,20 +9,17 @@ import (
 
 // Repository wraps SQLC queries for payback persistence.
 type Repository struct {
-	queries *sqlc.Queries
+	queries       *sqlc.Queries
+	db            *sql.DB
+	customerDB    string
+	transactionDB string
+	paybackDB     string
 }
 
 // New creates a Repository from a database connection.
 func New(db *sql.DB) *Repository {
 	return &Repository{
 		queries: sqlc.New(db),
+		db:      db,
 	}
-}
-
-// CreatePayback inserts a new payback record.
-func (r *Repository) CreatePayback(
-	ctx context.Context,
-	params sqlc.CreatePaybackParams,
-) (sql.Result, error) {
-	return r.queries.CreatePayback(ctx, params)
 }

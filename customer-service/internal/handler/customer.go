@@ -4,6 +4,7 @@
 package handler
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,7 @@ type CreateCustomerRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Email       string `json:"email" binding:"required,email"`
 	CreditLimit string `json:"credit_limit" binding:"required"`
+	UserID      *int64 `json:"user_id"`
 }
 
 // CustomerHandler handles all customer-related API requests.  blueprint for the customer services
@@ -59,6 +61,13 @@ func (h *CustomerHandler) CreateCustomer(c *gin.Context) {
 		Name:        req.Name,
 		Email:       req.Email,
 		CreditLimit: req.CreditLimit,
+	}
+
+	if req.UserID != nil {
+		params.UserID = sql.NullInt64{
+			Int64: *req.UserID,
+			Valid: true,
+		}
 	}
 
 	// Call service layer to create customer

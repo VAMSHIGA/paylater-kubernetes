@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"paylater/shared/config"
+	"paylater/shared/customerauth"
 	"paylater/shared/database"
 	"paylater/shared/health"
 	"paylater/shared/server"
@@ -30,7 +31,8 @@ func main() {
 
 	repo := repository.New(conn)
 	transactionService := service.NewTransactionService(repo)
-	transactionHandler := handler.NewTransactionHandler(transactionService)
+	ownershipResolver := customerauth.NewDBResolver(conn)
+	transactionHandler := handler.NewTransactionHandler(transactionService, ownershipResolver)
 
 	engine := gin.Default()
 	health.Register(engine)

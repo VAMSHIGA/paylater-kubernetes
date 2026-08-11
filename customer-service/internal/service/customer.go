@@ -24,10 +24,20 @@ func NewCustomerService(repo *repository.Repository) *CustomerService {
 }
 
 // CreateCustomer creates a new customer in the database.
+//
+// When user_id is not provided, the service attempts to link the profile to an
+// existing customer-role identity user with the same email.
 func (s *CustomerService) CreateCustomer(
 	ctx context.Context,
 	params sqlc.CreateCustomerParams,
 ) error {
+	if !params.UserID.Valid {
+		userID, err := s.repo.LookupCustomerUserIDByEmail(ctx, params.Email)
+		if err != nil {
+			return err
+		}
+		params.UserID = userID
+	}
 
 	_, err := s.repo.CreateCustomer(ctx, params)
 	if err != nil {
