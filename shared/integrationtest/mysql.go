@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	CustomerDBName    = balance.DefaultCustomerDB
+	CustomerDBName    = "paylater_it_customer_db"
 	TransactionDBName = "paylater_it_transaction_db"
 	PaybackDBName     = "paylater_it_payback_db"
 
@@ -286,6 +286,16 @@ func ensureSchema(root *sql.DB) error {
 	ddl := fmt.Sprintf(`
 		CREATE DATABASE IF NOT EXISTS %s;
 		CREATE DATABASE IF NOT EXISTS %s;
+		CREATE DATABASE IF NOT EXISTS %s;
+
+		CREATE TABLE IF NOT EXISTS %s.customers (
+			id BIGINT AUTO_INCREMENT PRIMARY KEY,
+			user_id BIGINT NULL,
+			name VARCHAR(100) NOT NULL,
+			email VARCHAR(100) NOT NULL UNIQUE,
+			credit_limit DECIMAL(10,2) NOT NULL,
+			UNIQUE KEY idx_customers_user_id (user_id)
+		);
 
 		CREATE TABLE IF NOT EXISTS %s.transactions (
 			id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -303,8 +313,10 @@ func ensureSchema(root *sql.DB) error {
 			payment_date DATE NOT NULL
 		);
 	`,
+		CustomerDBName,
 		TransactionDBName,
 		PaybackDBName,
+		CustomerDBName,
 		TransactionDBName,
 		PaybackDBName,
 	)
