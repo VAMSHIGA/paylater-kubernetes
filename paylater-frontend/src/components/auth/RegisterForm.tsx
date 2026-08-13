@@ -1,5 +1,5 @@
-import { Eye, EyeOff } from 'lucide-react'
-import { type FormEvent, useId, useState } from 'react'
+import { Eye, EyeOff, ShoppingBag, Store } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import {
@@ -18,9 +18,24 @@ interface FormErrors {
   role?: string
 }
 
-const roleOptions: Array<{ value: UserRole; label: string }> = [
-  { value: 'customer', label: 'Customer' },
-  { value: 'merchant', label: 'Merchant' },
+const roleOptions: Array<{
+  value: UserRole
+  title: string
+  description: string
+  icon: typeof ShoppingBag
+}> = [
+  {
+    value: 'customer',
+    title: 'Customer',
+    description: 'Buy now and pay later',
+    icon: ShoppingBag,
+  },
+  {
+    value: 'merchant',
+    title: 'Merchant',
+    description: 'Grow your business with PayLater',
+    icon: Store,
+  },
 ]
 
 function cn(...parts: Array<string | false | undefined>): string {
@@ -77,7 +92,6 @@ function validateRole(role: UserRole | ''): string | undefined {
 }
 
 export function RegisterForm() {
-  const roleSelectId = useId()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -235,34 +249,46 @@ export function RegisterForm() {
         </button>
       </div>
 
-      <div className="flex w-full flex-col gap-1.5">
-        <label htmlFor={roleSelectId} className="text-sm font-medium text-text">
-          Account Type
-        </label>
-        <select
-          id={roleSelectId}
-          name="role"
-          value={role}
-          onChange={(event) => setRole(event.target.value as UserRole)}
-          disabled={loading || isComplete}
-          aria-invalid={fieldErrors.role ? true : undefined}
-          className={cn(
-            'block w-full rounded-lg border bg-surface px-3 py-2 text-sm text-text',
-            'transition-colors duration-150',
-            'focus:outline-none focus:ring-2 focus:ring-offset-0',
-            fieldErrors.role
-              ? 'border-error focus:border-error focus:ring-error/20'
-              : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20',
-            (loading || isComplete) &&
-              'cursor-not-allowed border-slate-200 bg-slate-50 text-text-muted',
-          )}
-        >
-          {roleOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <div className="flex w-full flex-col gap-2">
+        <span className="text-sm font-medium text-text">Account Type</span>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {roleOptions.map((option) => {
+            const Icon = option.icon
+            const isSelected = role === option.value
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                disabled={loading || isComplete}
+                onClick={() => setRole(option.value)}
+                className={cn(
+                  'rounded-2xl border p-4 text-left transition-all duration-200',
+                  'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+                  isSelected
+                    ? 'border-primary-500 bg-primary-50 shadow-sm ring-1 ring-primary-500/20'
+                    : 'border-slate-200 bg-surface hover:border-primary-300 hover:bg-slate-50',
+                  (loading || isComplete) && 'cursor-not-allowed opacity-70',
+                )}
+              >
+                <div
+                  className={cn(
+                    'mb-3 flex h-10 w-10 items-center justify-center rounded-xl',
+                    isSelected
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-slate-100 text-text-muted',
+                  )}
+                >
+                  <Icon size={18} aria-hidden="true" />
+                </div>
+                <p className="text-sm font-semibold text-text">{option.title}</p>
+                <p className="mt-1 text-xs text-text-muted">
+                  {option.description}
+                </p>
+              </button>
+            )
+          })}
+        </div>
         {fieldErrors.role ? (
           <p role="alert" className="text-sm text-error">
             {fieldErrors.role}

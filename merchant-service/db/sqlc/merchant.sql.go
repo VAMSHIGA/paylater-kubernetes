@@ -13,15 +13,14 @@ import (
 
 const createMerchant = `-- name: CreateMerchant :execresult
 
-
-
 INSERT INTO merchants (
     merchant_name,
     phone_number,
     onboarding,
-    commission
+    commission,
+    user_id
 )
-VALUES (?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type CreateMerchantParams struct {
@@ -29,32 +28,77 @@ type CreateMerchantParams struct {
 	PhoneNumber  string
 	Onboarding   time.Time
 	Commission   string
+	UserID       sql.NullInt64
 }
 
 // ===========================
 // Merchant Queries
 // ===========================
-// SQLC inputs for Merchant Service (merchant_db).
-// CreateMerchant onboards a merchant; UpdateMerchantCommission
-// changes fee percent used by reporting. Generated code: db/sqlc.
-// ===========================
-// Create Merchant
-// ===========================
-// Creates/onboards a new merchant.
-//
-// SQLC generates:
-// CreateMerchant(ctx, params)
 func (q *Queries) CreateMerchant(ctx context.Context, arg CreateMerchantParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, createMerchant,
 		arg.MerchantName,
 		arg.PhoneNumber,
 		arg.Onboarding,
 		arg.Commission,
+		arg.UserID,
 	)
 }
 
-const updateMerchantCommission = `-- name: UpdateMerchantCommission :execrows
+const getMerchantByID = `-- name: GetMerchantByID :one
+SELECT
+    id,
+    merchant_name,
+    phone_number,
+    onboarding,
+    commission,
+    user_id
+FROM merchants
+WHERE id = ?
+LIMIT 1
+`
 
+func (q *Queries) GetMerchantByID(ctx context.Context, id int64) (Merchant, error) {
+	row := q.db.QueryRowContext(ctx, getMerchantByID, id)
+	var i Merchant
+	err := row.Scan(
+		&i.ID,
+		&i.MerchantName,
+		&i.PhoneNumber,
+		&i.Onboarding,
+		&i.Commission,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getMerchantByUserID = `-- name: GetMerchantByUserID :one
+SELECT
+    id,
+    merchant_name,
+    phone_number,
+    onboarding,
+    commission,
+    user_id
+FROM merchants
+WHERE user_id = ?
+LIMIT 1
+`
+
+func (q *Queries) GetMerchantByUserID(ctx context.Context, userID sql.NullInt64) (Merchant, error) {
+	row := q.db.QueryRowContext(ctx, getMerchantByUserID, userID)
+	var i Merchant
+	err := row.Scan(
+		&i.ID,
+		&i.MerchantName,
+		&i.PhoneNumber,
+		&i.Onboarding,
+		&i.Commission,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const updateMerchantCommission = `-- name: UpdateMerchantCommission :execrows
 UPDATE merchants
 SET commission = ?
 WHERE id = ?
@@ -65,16 +109,6 @@ type UpdateMerchantCommissionParams struct {
 	ID         int64
 }
 
-// ===========================
-// Update Merchant Commission
-// ===========================
-// Updates only the commission percentage
-// for an existing merchant.
-//
-// Merchant is identified using its ID.
-//
-// SQLC generates:
-// UpdateMerchantCommission(ctx, params)
 func (q *Queries) UpdateMerchantCommission(ctx context.Context, arg UpdateMerchantCommissionParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateMerchantCommission, arg.Commission, arg.ID)
 	if err != nil {

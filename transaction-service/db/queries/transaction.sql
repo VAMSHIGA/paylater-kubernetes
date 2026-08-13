@@ -29,3 +29,38 @@ INSERT INTO transactions (
     transaction_date
 )
 VALUES (?, ?, ?, ?, ?);
+
+
+-- ===========================
+-- List Transactions
+-- ===========================
+-- Returns all transactions ordered by newest first.
+
+-- name: ListTransactions :many
+SELECT
+    id,
+    customer_id,
+    merchant_id,
+    amount,
+    commission,
+    transaction_date
+FROM transactions
+ORDER BY id DESC;
+
+
+-- ===========================
+-- List Transactions By Customer ID
+-- ===========================
+-- Returns transactions for a single customer ordered by newest first.
+
+-- name: ListTransactionsByCustomerID :many
+SELECT
+    id,
+    customer_id,
+    merchant_id,
+    amount,
+    commission,
+    transaction_date
+FROM transactions
+WHERE customer_id = ?
+ORDER BY id DESC;

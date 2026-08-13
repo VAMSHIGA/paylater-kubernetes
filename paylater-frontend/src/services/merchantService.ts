@@ -3,9 +3,25 @@ import axios from 'axios'
 import type {
   ApiMessageResponse,
   CreateMerchantRequest,
+  Merchant,
+  MerchantDashboard,
   UpdateMerchantCommissionRequest,
 } from '../types'
 import { apiClient } from './api'
+
+export async function getMyMerchant(): Promise<Merchant> {
+  const { data } = await apiClient.get<Merchant>('/merchants/me')
+
+  return data
+}
+
+export async function getMerchantDashboard(): Promise<MerchantDashboard> {
+  const { data } = await apiClient.get<MerchantDashboard>(
+    '/merchants/me/dashboard',
+  )
+
+  return data
+}
 
 export async function createMerchant(
   payload: CreateMerchantRequest,

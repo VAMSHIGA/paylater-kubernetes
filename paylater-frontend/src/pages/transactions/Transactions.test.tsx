@@ -4,14 +4,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createMockAuthValue, renderWithAuthContext } from '../../test/render'
 import * as transactionService from '../../services/transactionService'
+import * as useCustomerProfileModule from '../../hooks/useCustomerProfile'
 import { Transactions } from './Transactions'
 
 vi.mock('../../services/transactionService', () => ({
   createTransaction: vi.fn(),
   getTransactionErrorMessage: vi.fn(),
+  listTransactions: vi.fn(),
+}))
+
+vi.mock('../../hooks/useCustomerProfile', () => ({
+  useCustomerProfile: vi.fn(),
 }))
 
 const mockedTransactionService = vi.mocked(transactionService)
+const mockedUseCustomerProfile = vi.mocked(
+  useCustomerProfileModule.useCustomerProfile,
+)
 
 function renderTransactions(role: 'admin' | 'customer' | 'merchant') {
   return renderWithAuthContext(
@@ -26,6 +35,13 @@ function renderTransactions(role: 'admin' | 'customer' | 'merchant') {
 
 describe('Transactions page', () => {
   beforeEach(() => {
+    mockedUseCustomerProfile.mockReturnValue({
+      profile: null,
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    })
+    mockedTransactionService.listTransactions.mockResolvedValue([])
     mockedTransactionService.createTransaction.mockResolvedValue(
       'Transaction created successfully',
     )
@@ -42,9 +58,22 @@ describe('Transactions page', () => {
       screen.getByRole('heading', { name: 'Transaction Management' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create Transaction' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Transaction History' })).toBeInTheDocument()
   })
 
   it('renders create transaction UI for customer', () => {
+    mockedUseCustomerProfile.mockReturnValue({
+      profile: {
+        ID: 8,
+        Name: 'Customer',
+        Email: 'customer@test.example',
+        CreditLimit: '1000.00',
+      },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    })
+
     renderTransactions('customer')
 
     expect(screen.getByRole('button', { name: 'Create Transaction' })).toBeInTheDocument()

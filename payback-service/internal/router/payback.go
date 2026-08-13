@@ -26,4 +26,14 @@ func PaybackRoutes(
 		),
 		handler.CreatePayback,
 	)
+
+	router.GET(
+		"/paybacks",
+		middleware.AuthMiddleware(),
+		middleware.AuthorizeRoles(
+			constants.RoleAdmin,
+			constants.RoleCustomer,
+		),
+		handler.ListPaybacks,
+	)
 }

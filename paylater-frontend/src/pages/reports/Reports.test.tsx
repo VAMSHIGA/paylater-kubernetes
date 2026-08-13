@@ -34,7 +34,7 @@ describe('Reports', () => {
 
     expect(screen.getByText('Loading total dues...')).toBeInTheDocument()
 
-    expect(await screen.findByText('100.00')).toBeInTheDocument()
+    expect(await screen.findByText('₹100.00')).toBeInTheDocument()
     expect(screen.getByText('Shop')).toBeInTheDocument()
   })
 
@@ -52,14 +52,14 @@ describe('Reports', () => {
     render(<Reports />)
 
     expect(await screen.findByText('Failed to load report')).toBeInTheDocument()
-    expect(await screen.findByText('100.00')).toBeInTheDocument()
+    expect(await screen.findByText('₹100.00')).toBeInTheDocument()
   })
 
   it('refreshes all report sections', async () => {
     const user = userEvent.setup()
     render(<Reports />)
 
-    await screen.findByText('100.00')
+    await screen.findByText('₹100.00')
 
     const initialCalls = mockedReportService.getTotalDues.mock.calls.length
 

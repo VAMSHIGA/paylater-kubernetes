@@ -12,6 +12,7 @@ import (
 // Strangler routing:
 //
 //	POST /transactions → Transaction Service
+//	GET  /transactions → Transaction Service
 //
 // Local transaction routes are not registered; transaction APIs are owned by the Transaction Service.
 func TransactionProxyRoutes(router *gin.Engine, transactionServiceURL string) {
@@ -23,4 +24,5 @@ func TransactionProxyRoutes(router *gin.Engine, transactionServiceURL string) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
 	router.POST("/transactions", gin.WrapH(proxy))
+	router.GET("/transactions", gin.WrapH(proxy))
 }

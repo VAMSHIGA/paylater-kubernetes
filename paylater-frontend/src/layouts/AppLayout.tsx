@@ -17,7 +17,7 @@ export function AppLayout() {
   }, [logout])
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="dashboard-grid flex min-h-screen bg-background">
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={handleMobileClose}
@@ -32,7 +32,9 @@ export function AppLayout() {
         />
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <Outlet />
+          <div className="mx-auto max-w-7xl">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

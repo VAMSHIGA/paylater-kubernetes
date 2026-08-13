@@ -39,6 +39,35 @@ func (s *handlerRepoStub) CreateTransaction(
 	return s.createErr
 }
 
+func (s *handlerRepoStub) ListTransactions(context.Context) ([]sqlc.Transaction, error) {
+	return []sqlc.Transaction{
+		{
+			ID:              1,
+			CustomerID:      2,
+			MerchantID:      3,
+			Amount:          "100.00",
+			Commission:      "2.00",
+			TransactionDate: time.Date(2026, 8, 12, 0, 0, 0, 0, time.UTC),
+		},
+	}, nil
+}
+
+func (s *handlerRepoStub) ListTransactionsByCustomerID(
+	_ context.Context,
+	customerID int64,
+) ([]sqlc.Transaction, error) {
+	return []sqlc.Transaction{
+		{
+			ID:              5,
+			CustomerID:      customerID,
+			MerchantID:      3,
+			Amount:          "300.00",
+			Commission:      "2.00",
+			TransactionDate: time.Date(2026, 8, 12, 0, 0, 0, 0, time.UTC),
+		},
+	}, nil
+}
+
 type stubOwnershipResolver struct {
 	customerID int64
 }
@@ -120,6 +149,66 @@ func TestCreateTransaction_AdminBypassesCreditLimitEnforcement(t *testing.T) {
 	}
 	if repo.enforceCreditLimit {
 		t.Fatal("expected admin to bypass credit limit enforcement")
+	}
+}
+
+func TestListTransactions_CustomerSeesOwnedTransactionsOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &handlerRepoStub{}
+	handler := NewTransactionHandler(service.NewTransactionService(repo), stubOwnershipResolver{customerID: 7})
+
+	router := gin.New()
+	router.GET("/transactions", func(c *gin.Context) {
+		c.Set(constants.ContextKeyRole, constants.RoleCustomer)
+		c.Set(constants.ContextKeyUserID, int64(10))
+		handler.ListTransactions(c)
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/transactions", nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	var items []TransactionResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &items); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if len(items) != 1 || items[0].CustomerID != 7 || items[0].Amount != "300.00" {
+		t.Fatalf("unexpected items: %+v", items)
+	}
+}
+
+func TestListTransactions_AdminSeesAllTransactions(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &handlerRepoStub{}
+	handler := NewTransactionHandler(service.NewTransactionService(repo), nil)
+
+	router := gin.New()
+	router.GET("/transactions", func(c *gin.Context) {
+		c.Set(constants.ContextKeyRole, constants.RoleAdmin)
+		c.Set(constants.ContextKeyUserID, int64(1))
+		handler.ListTransactions(c)
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/transactions", nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	var items []TransactionResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &items); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if len(items) != 1 || items[0].ID != 1 {
+		t.Fatalf("unexpected items: %+v", items)
 	}
 }
 

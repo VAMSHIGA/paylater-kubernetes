@@ -1,24 +1,38 @@
 @import 'tailwindcss';
 
 @theme {
-  /* PayLater fintech design tokens */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  --color-navy-900: #0f172a;
+  --color-navy-800: #1e293b;
+  --color-navy-700: #334155;
 
   --color-surface: #ffffff;
-  --color-background: #f8fafc;
-  --color-text: #1e293b;
+  --color-background: #f4f6fb;
+  --color-text: #0f172a;
   --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
 
-  --color-success: #16a34a;
+  --color-success: #059669;
+  --color-success-soft: #ecfdf5;
   --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
   --color-error: #dc2626;
+  --color-error-soft: #fef2f2;
 
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, sans-serif;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 4px 6px rgba(15, 23, 42, 0.05), 0 16px 32px rgba(15, 23, 42, 0.08);
+  --shadow-premium: 0 20px 50px rgba(15, 23, 42, 0.12);
 }
 
 @layer base {
@@ -43,5 +57,162 @@
 
   #root {
     min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.45s ease-out both;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out both;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+  }
+
+  .fintech-gradient {
+    background:
+      radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.28), transparent 35%),
+      radial-gradient(circle at 80% 0%, rgba(79, 70, 229, 0.22), transparent 30%),
+      linear-gradient(145deg, #0f172a 0%, #1e293b 45%, #312e81 100%);
+  }
+
+  .dashboard-grid {
+    background-image:
+      linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .login-page {
+    animation: fade-in 0.4s ease-out both;
+  }
+
+  .login-hero {
+    background:
+      radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.35), transparent 38%),
+      radial-gradient(circle at 85% 10%, rgba(79, 70, 229, 0.28), transparent 32%),
+      radial-gradient(circle at 70% 85%, rgba(56, 189, 248, 0.12), transparent 30%),
+      linear-gradient(155deg, #0b1220 0%, #111827 38%, #1e1b4b 100%);
+  }
+
+  .login-hero__grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.18;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, black 20%, transparent 95%);
+  }
+
+  .login-hero__orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(48px);
+  }
+
+  .login-hero__orb--one {
+    top: 12%;
+    left: 8%;
+    width: 11rem;
+    height: 11rem;
+    background: rgba(99, 102, 241, 0.35);
+  }
+
+  .login-hero__orb--two {
+    right: 6%;
+    top: 28%;
+    width: 14rem;
+    height: 14rem;
+    background: rgba(79, 70, 229, 0.28);
+  }
+
+  .login-hero__orb--three {
+    bottom: 8%;
+    left: 30%;
+    width: 10rem;
+    height: 10rem;
+    background: rgba(129, 140, 248, 0.22);
+  }
+
+  .login-payment-card {
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.06) 55%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+    backdrop-filter: blur(16px);
+  }
+
+  .login-payment-card__shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      115deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.14) 50%,
+      transparent 65%
+    );
+    transform: translateX(-120%);
+    animation: card-shine 8s ease-in-out infinite;
+  }
+
+  .login-card-glow {
+    background: radial-gradient(
+      circle,
+      rgba(99, 102, 241, 0.35) 0%,
+      transparent 70%
+    );
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes card-shine {
+  0%,
+  72% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
   }
 }

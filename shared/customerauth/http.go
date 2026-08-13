@@ -68,3 +68,28 @@ func WriteOwnershipError(c *gin.Context, err error) bool {
 	response.InternalError(c, err)
 	return true
 }
+
+// OwnedCustomerIDFromContext resolves customers.id for the authenticated customer user.
+func OwnedCustomerIDFromContext(c *gin.Context, resolver Resolver) (int64, error) {
+	roleValue, roleExists := c.Get(constants.ContextKeyRole)
+	if !roleExists {
+		return 0, platformerrors.ErrNotAuthorized
+	}
+
+	role, ok := roleValue.(string)
+	if !ok || role != constants.RoleCustomer {
+		return 0, platformerrors.ErrNotAuthorized
+	}
+
+	userIDValue, userIDExists := c.Get(constants.ContextKeyUserID)
+	if !userIDExists {
+		return 0, platformerrors.ErrNotAuthorized
+	}
+
+	userID, ok := userIDValue.(int64)
+	if !ok {
+		return 0, platformerrors.ErrNotAuthorized
+	}
+
+	return resolver.GetCustomerIDByUserID(c.Request.Context(), userID)
+}

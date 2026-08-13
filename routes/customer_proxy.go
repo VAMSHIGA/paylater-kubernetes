@@ -11,8 +11,9 @@ import (
 //
 // Strangler routing:
 //
-//	POST /customers → Customer Service
-//	GET /customers  → Customer Service
+//	POST /customers    → Customer Service
+//	GET /customers     → Customer Service
+//	GET /customers/me  → Customer Service
 //
 // Local customer routes are not registered; customer APIs are owned by the Customer Service.
 func CustomerProxyRoutes(router *gin.Engine, customerServiceURL string) {
@@ -24,5 +25,6 @@ func CustomerProxyRoutes(router *gin.Engine, customerServiceURL string) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
 	router.POST("/customers", gin.WrapH(proxy))
+	router.GET("/customers/me", gin.WrapH(proxy))
 	router.GET("/customers", gin.WrapH(proxy))
 }

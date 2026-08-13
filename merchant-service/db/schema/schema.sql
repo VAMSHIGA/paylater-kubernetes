@@ -22,5 +22,10 @@ CREATE TABLE merchants (
 
     -- Commission percentage charged to the merchant.
     -- Example: 5.00 means 5%.
-    commission DECIMAL(5,2) NOT NULL
+    commission DECIMAL(5,2) NOT NULL,
+
+    -- Identity user that owns this merchant profile (identity_db.users.id).
+    user_id BIGINT NULL,
+
+    UNIQUE KEY idx_merchants_user_id (user_id)
 );

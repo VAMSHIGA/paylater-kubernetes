@@ -72,6 +72,7 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: customer_db
       JWT_SECRET: ${JWT_SECRET}
+      DEFAULT_CUSTOMER_CREDIT_LIMIT: ${DEFAULT_CUSTOMER_CREDIT_LIMIT:-1000.00}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
       interval: 10s
@@ -232,6 +233,7 @@ services:
 
 networks:
   paylater-network:
+    external: true
     name: paylater-network
 
 volumes:

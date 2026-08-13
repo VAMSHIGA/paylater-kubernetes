@@ -49,3 +49,90 @@ type CreatePaybackParams struct {
 func (q *Queries) CreatePayback(ctx context.Context, arg CreatePaybackParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, createPayback, arg.CustomerID, arg.Amount, arg.PaymentDate)
 }
+
+const listPaybacks = `-- name: ListPaybacks :many
+
+SELECT
+    id,
+    customer_id,
+    amount,
+    payment_date
+FROM paybacks
+ORDER BY id DESC
+`
+
+// ===========================
+// List Paybacks
+// ===========================
+// Returns all paybacks ordered by newest first.
+func (q *Queries) ListPaybacks(ctx context.Context) ([]Payback, error) {
+	rows, err := q.db.QueryContext(ctx, listPaybacks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Payback
+	for rows.Next() {
+		var i Payback
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.Amount,
+			&i.PaymentDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPaybacksByCustomerID = `-- name: ListPaybacksByCustomerID :many
+
+SELECT
+    id,
+    customer_id,
+    amount,
+    payment_date
+FROM paybacks
+WHERE customer_id = ?
+ORDER BY id DESC
+`
+
+// ===========================
+// List Paybacks By Customer ID
+// ===========================
+// Returns paybacks for a single customer ordered by newest first.
+func (q *Queries) ListPaybacksByCustomerID(ctx context.Context, customerID int64) ([]Payback, error) {
+	rows, err := q.db.QueryContext(ctx, listPaybacksByCustomerID, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Payback
+	for rows.Next() {
+		var i Payback
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.Amount,
+			&i.PaymentDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

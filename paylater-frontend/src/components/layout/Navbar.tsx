@@ -1,4 +1,7 @@
-import { Bell, ChevronDown, Menu, Search, User } from 'lucide-react'
+import { ChevronDown, Menu, User } from 'lucide-react'
+import { Link } from 'react-router-dom'
+
+import { formatRoleLabel } from '../../utils/display'
 
 export interface NavbarProps {
   userName?: string
@@ -16,13 +19,15 @@ export function Navbar({
   userName = 'User',
   userRole,
   onMenuClick,
-  onProfileClick,
   className,
 }: NavbarProps) {
+  const roleLabel = formatRoleLabel(userRole)
+  const initials = userName.charAt(0).toUpperCase()
+
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-surface px-4 sm:px-6',
+        'sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-md sm:px-6',
         className,
       )}
     >
@@ -31,7 +36,7 @@ export function Navbar({
         onClick={onMenuClick}
         aria-label="Open navigation menu"
         className={cn(
-          'inline-flex items-center justify-center rounded-lg p-2 text-text-muted lg:hidden',
+          'inline-flex items-center justify-center rounded-xl p-2 text-text-muted lg:hidden',
           'transition-colors hover:bg-slate-100 hover:text-text',
           'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
         )}
@@ -41,66 +46,48 @@ export function Navbar({
 
       <div className="flex items-center gap-2 lg:hidden">
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-md bg-primary-600 text-xs font-bold text-white"
+          className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-600 text-xs font-bold text-white"
           aria-hidden="true"
         >
           P
         </span>
-        <span className="text-base font-semibold text-text">PayLater</span>
+        <span className="text-base font-bold text-text">PayLater</span>
       </div>
 
-      <div className="relative hidden max-w-md flex-1 md:block">
-        <Search
-          size={16}
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-        />
-        <input
-          type="search"
-          placeholder="Search..."
-          disabled
-          aria-label="Search"
-          className={cn(
-            'w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-text',
-            'placeholder:text-text-muted',
-            'cursor-not-allowed opacity-70',
-          )}
-        />
+      <div className="hidden lg:block">
+        <p className="text-sm font-medium text-text">PayLater Platform</p>
+        <p className="text-xs text-text-muted">
+          Secure payments and credit management
+        </p>
       </div>
 
-      <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          aria-label="Notifications"
-          className={cn(
-            'inline-flex items-center justify-center rounded-lg p-2 text-text-muted',
-            'transition-colors hover:bg-slate-100 hover:text-text',
-            'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
-          )}
-        >
-          <Bell size={20} aria-hidden="true" />
-        </button>
+      <div className="ml-auto flex items-center gap-3">
+        {userRole ? (
+          <span className="hidden rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary-700 sm:inline-flex">
+            {roleLabel}
+          </span>
+        ) : null}
 
-        <button
-          type="button"
-          onClick={onProfileClick}
-          aria-label="User profile menu"
+        <Link
+          to="/settings"
           className={cn(
-            'inline-flex items-center gap-2 rounded-lg px-2 py-1.5 sm:px-3',
+            'inline-flex items-center gap-2 rounded-xl px-2 py-1.5 sm:px-3',
             'transition-colors hover:bg-slate-100',
             'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
           )}
         >
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-primary-700"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-sm font-semibold text-white"
             aria-hidden="true"
           >
-            <User size={16} />
+            {initials || <User size={16} />}
           </span>
           <span className="hidden flex-col items-start sm:flex">
-            <span className="text-sm font-medium text-text">{userName}</span>
+            <span className="max-w-[180px] truncate text-sm font-semibold text-text">
+              {userName}
+            </span>
             {userRole ? (
-              <span className="text-xs text-text-muted">{userRole}</span>
+              <span className="text-xs text-text-muted">{roleLabel}</span>
             ) : null}
           </span>
           <ChevronDown
@@ -108,7 +95,7 @@ export function Navbar({
             aria-hidden="true"
             className="hidden text-text-muted sm:block"
           />
-        </button>
+        </Link>
       </div>
     </header>
   )

@@ -59,3 +59,23 @@ SELECT id
 FROM customers
 WHERE user_id = ?
 LIMIT 1;
+
+
+-- ===========================
+-- Get Customer By User ID
+-- ===========================
+-- Returns the full customer profile owned by an identity user.
+--
+-- SQLC generates:
+-- GetCustomerByUserID(ctx, user_id)
+
+-- name: GetCustomerByUserID :one
+SELECT
+    id,
+    user_id,
+    name,
+    email,
+    credit_limit
+FROM customers
+WHERE user_id = ?
+LIMIT 1;

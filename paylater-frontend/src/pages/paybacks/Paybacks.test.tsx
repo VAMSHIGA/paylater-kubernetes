@@ -4,14 +4,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createMockAuthValue, renderWithAuthContext } from '../../test/render'
 import * as paybackService from '../../services/paybackService'
+import * as useCustomerProfileModule from '../../hooks/useCustomerProfile'
 import { Paybacks } from './Paybacks'
 
 vi.mock('../../services/paybackService', () => ({
   createPayback: vi.fn(),
   getPaybackErrorMessage: vi.fn(),
+  listPaybacks: vi.fn(),
+}))
+
+vi.mock('../../hooks/useCustomerProfile', () => ({
+  useCustomerProfile: vi.fn(),
 }))
 
 const mockedPaybackService = vi.mocked(paybackService)
+const mockedUseCustomerProfile = vi.mocked(
+  useCustomerProfileModule.useCustomerProfile,
+)
 
 function renderPaybacks(role: 'admin' | 'customer') {
   return renderWithAuthContext(
@@ -26,6 +35,13 @@ function renderPaybacks(role: 'admin' | 'customer') {
 
 describe('Paybacks page', () => {
   beforeEach(() => {
+    mockedUseCustomerProfile.mockReturnValue({
+      profile: null,
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    })
+    mockedPaybackService.listPaybacks.mockResolvedValue([])
     mockedPaybackService.createPayback.mockResolvedValue(
       'Payback created successfully',
     )
@@ -36,12 +52,25 @@ describe('Paybacks page', () => {
   })
 
   it('renders create payback UI', () => {
+    mockedUseCustomerProfile.mockReturnValue({
+      profile: {
+        ID: 8,
+        Name: 'Customer',
+        Email: 'customer@test.example',
+        CreditLimit: '1000.00',
+      },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    })
+
     renderPaybacks('customer')
 
     expect(
       screen.getByRole('heading', { name: 'Payback Management' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create Payback' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Payback History' })).toBeInTheDocument()
   })
 
   it('validates required fields', async () => {

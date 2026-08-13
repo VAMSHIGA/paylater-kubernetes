@@ -5,6 +5,7 @@ package handler
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,7 @@ import (
 	"paylater/customer-service/internal/service"
 
 	// Common response helper
+	"paylater/shared/constants"
 	"paylater/shared/response"
 )
 
@@ -26,6 +28,16 @@ type CreateCustomerRequest struct {
 	Email       string `json:"email" binding:"required,email"`
 	CreditLimit string `json:"credit_limit" binding:"required"`
 	UserID      *int64 `json:"user_id"`
+}
+
+// CustomerProfileResponse is returned by GET /customers/me.
+type CustomerProfileResponse struct {
+	ID              int64  `json:"ID"`
+	Name            string `json:"Name"`
+	Email           string `json:"Email"`
+	CreditLimit     string `json:"CreditLimit"`
+	OutstandingDue  string `json:"OutstandingDue"`
+	AvailableCredit string `json:"AvailableCredit"`
 }
 
 // CustomerHandler handles all customer-related API requests.  blueprint for the customer services
@@ -73,6 +85,10 @@ func (h *CustomerHandler) CreateCustomer(c *gin.Context) {
 	// Call service layer to create customer
 	err := h.service.CreateCustomer(c.Request.Context(), params)
 	if err != nil {
+		if errors.Is(err, service.ErrIdentityCustomerNotFound) {
+			response.Error(c, http.StatusNotFound, err.Error())
+			return
+		}
 
 		// Return error if customer creation fails
 		response.InternalError(c, err)
@@ -97,4 +113,37 @@ func (h *CustomerHandler) ListCustomers(c *gin.Context) {
 
 	// Return customer list as JSON response
 	response.JSON(c, http.StatusOK, customers)
+}
+
+// GetMyCustomer handles GET /customers/me for the authenticated customer profile.
+func (h *CustomerHandler) GetMyCustomer(c *gin.Context) {
+	userIDValue, exists := c.Get(constants.ContextKeyUserID)
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	userID, ok := userIDValue.(int64)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "invalid user context")
+		return
+	}
+
+	emailValue, _ := c.Get(constants.ContextKeyEmail)
+	email, _ := emailValue.(string)
+
+	profile, err := h.service.GetMyCustomerProfile(c.Request.Context(), userID, email)
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.JSON(c, http.StatusOK, CustomerProfileResponse{
+		ID:              profile.Customer.ID,
+		Name:            profile.Customer.Name,
+		Email:           profile.Customer.Email,
+		CreditLimit:     profile.Customer.CreditLimit,
+		OutstandingDue:  profile.OutstandingDue,
+		AvailableCredit: profile.AvailableCredit,
+	})
 }

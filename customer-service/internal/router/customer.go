@@ -11,11 +11,18 @@ import (
 	"paylater/shared/middleware"
 )
 
-// CustomerRoutes registers POST /customers and GET /customers (admin only).
+// CustomerRoutes registers customer HTTP routes.
 func CustomerRoutes(
 	router *gin.Engine,
 	handler *handler.CustomerHandler,
 ) {
+
+	router.GET(
+		"/customers/me",
+		middleware.AuthMiddleware(),
+		middleware.AuthorizeRoles(constants.RoleCustomer),
+		handler.GetMyCustomer,
+	)
 
 	router.POST(
 		"/customers",

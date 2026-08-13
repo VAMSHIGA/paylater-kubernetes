@@ -13,6 +13,52 @@ type RowQuerier interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
+// CustomerBalanceResult holds a customer's outstanding due and available credit.
+type CustomerBalanceResult struct {
+	OutstandingDue  string
+	AvailableCredit string
+}
+
+// CustomerBalance returns remaining due and available credit for a customer
+// using the shared PayLater formulas:
+//
+//	remaining_due = SUM(transactions) - SUM(paybacks)
+//	available_credit = GREATEST(credit_limit - remaining_due, 0)
+func CustomerBalance(
+	ctx context.Context,
+	querier RowQuerier,
+	dbs DatabaseNames,
+	customerID int64,
+) (CustomerBalanceResult, error) {
+	dueExpr := remainingDueExpression(dbs.TransactionDB, dbs.PaybackDB)
+	query := fmt.Sprintf(`
+		SELECT
+			CAST(GREATEST(%s, 0) AS CHAR),
+			CAST(GREATEST(c.credit_limit - GREATEST(%s, 0), 0) AS CHAR)
+		FROM %s.customers c
+		WHERE c.id = ?`,
+		dueExpr,
+		dueExpr,
+		dbs.CustomerDB,
+	)
+
+	var balance CustomerBalanceResult
+	err := querier.QueryRowContext(
+		ctx,
+		query,
+		customerID,
+		customerID,
+		customerID,
+		customerID,
+		customerID,
+	).Scan(&balance.OutstandingDue, &balance.AvailableCredit)
+	if err != nil {
+		return CustomerBalanceResult{}, err
+	}
+
+	return balance, nil
+}
+
 func remainingDueExpression(transactionDB, paybackDB string) string {
 	return fmt.Sprintf(`
 		COALESCE((

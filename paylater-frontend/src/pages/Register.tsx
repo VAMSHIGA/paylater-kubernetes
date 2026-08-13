@@ -1,25 +1,18 @@
 import { RegisterForm } from '../components/auth/RegisterForm'
-import { Card } from '../components/ui/Card'
 
 export function Register() {
   return (
-    <Card padding="lg" className="w-full">
-      <div className="mb-6 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 text-lg font-bold text-white">
-          P
-        </div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary-600">
-          PayLater
-        </p>
-        <h1 className="mt-3 text-2xl font-semibold text-text">
-          Create Your Account
+    <div className="glass-card rounded-3xl border border-slate-200/80 p-8 shadow-[var(--shadow-premium)] sm:p-10">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">
+          Create your PayLater account
         </h1>
         <p className="mt-2 text-sm text-text-muted">
-          Register to start using PayLater.
+          Choose how you want to use PayLater.
         </p>
       </div>
 
       <RegisterForm />
-    </Card>
+    </div>
   )
 }

@@ -25,3 +25,34 @@ INSERT INTO paybacks (
     payment_date
 )
 VALUES (?, ?, ?);
+
+
+-- ===========================
+-- List Paybacks
+-- ===========================
+-- Returns all paybacks ordered by newest first.
+
+-- name: ListPaybacks :many
+SELECT
+    id,
+    customer_id,
+    amount,
+    payment_date
+FROM paybacks
+ORDER BY id DESC;
+
+
+-- ===========================
+-- List Paybacks By Customer ID
+-- ===========================
+-- Returns paybacks for a single customer ordered by newest first.
+
+-- name: ListPaybacksByCustomerID :many
+SELECT
+    id,
+    customer_id,
+    amount,
+    payment_date
+FROM paybacks
+WHERE customer_id = ?
+ORDER BY id DESC;

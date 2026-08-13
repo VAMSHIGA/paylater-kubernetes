@@ -5,6 +5,7 @@
 package sqlc
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -14,4 +15,5 @@ type Merchant struct {
 	PhoneNumber  string
 	Onboarding   time.Time
 	Commission   string
+	UserID       sql.NullInt64
 }

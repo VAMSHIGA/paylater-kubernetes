@@ -5,6 +5,7 @@
 package handler
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	"paylater/merchant-service/db/sqlc"
 	"paylater/merchant-service/internal/service"
+	"paylater/shared/constants"
 	"paylater/shared/response"
 	"paylater/shared/validator"
 )
@@ -71,6 +73,16 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		Commission:   req.Commission,
 	}
 
+	if roleValue, exists := c.Get(constants.ContextKeyRole); exists {
+		if role, ok := roleValue.(string); ok && role == constants.RoleMerchant {
+			if userIDValue, userExists := c.Get(constants.ContextKeyUserID); userExists {
+				if userID, ok := userIDValue.(int64); ok {
+					params.UserID = sql.NullInt64{Int64: userID, Valid: true}
+				}
+			}
+		}
+	}
+
 	err = h.service.CreateMerchant(
 		c.Request.Context(),
 		params,
@@ -127,4 +139,120 @@ func (h *MerchantHandler) UpdateMerchantCommission(c *gin.Context) {
 	}
 
 	response.SuccessMessage(c, http.StatusOK, "Merchant commission updated successfully")
+}
+
+type MerchantProfileResponse struct {
+	ID           int64  `json:"ID"`
+	MerchantName string `json:"MerchantName"`
+	PhoneNumber  string `json:"PhoneNumber"`
+	Onboarding   string `json:"Onboarding"`
+	Commission   string `json:"Commission"`
+}
+
+type MerchantDashboardTransactionResponse struct {
+	ID                int64  `json:"ID"`
+	CustomerID        int64  `json:"CustomerID"`
+	CustomerName      string `json:"CustomerName"`
+	Amount            string `json:"Amount"`
+	CommissionPercent string `json:"CommissionPercent"`
+	CommissionAmount  string `json:"CommissionAmount"`
+	MerchantNetAmount string `json:"MerchantNetAmount"`
+	TransactionDate   string `json:"TransactionDate"`
+}
+
+type MerchantDashboardResponse struct {
+	ID                 int64                                  `json:"ID"`
+	MerchantName       string                                 `json:"MerchantName"`
+	CommissionPercent  string                                 `json:"CommissionPercent"`
+	TotalTransactions  int64                                  `json:"TotalTransactions"`
+	TotalSales         string                                 `json:"TotalSales"`
+	TotalCommission    string                                 `json:"TotalCommission"`
+	MerchantEarnings   string                                 `json:"MerchantEarnings"`
+	PayLaterCommission string                               `json:"PayLaterCommission"`
+	RecentTransactions []MerchantDashboardTransactionResponse `json:"RecentTransactions"`
+}
+
+func (h *MerchantHandler) GetMyMerchant(c *gin.Context) {
+	userIDValue, exists := c.Get(constants.ContextKeyUserID)
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	userID, ok := userIDValue.(int64)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "invalid user context")
+		return
+	}
+
+	emailValue, _ := c.Get(constants.ContextKeyEmail)
+	email, _ := emailValue.(string)
+
+	merchant, err := h.service.GetMyMerchantProfile(c.Request.Context(), userID, email)
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.JSON(c, http.StatusOK, MerchantProfileResponse{
+		ID:           merchant.ID,
+		MerchantName: merchant.MerchantName,
+		PhoneNumber:  merchant.PhoneNumber,
+		Onboarding:   merchant.Onboarding.Format("2006-01-02"),
+		Commission:   merchant.Commission,
+	})
+}
+
+func (h *MerchantHandler) GetMyMerchantDashboard(c *gin.Context) {
+	userIDValue, exists := c.Get(constants.ContextKeyUserID)
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	userID, ok := userIDValue.(int64)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "invalid user context")
+		return
+	}
+
+	emailValue, _ := c.Get(constants.ContextKeyEmail)
+	email, _ := emailValue.(string)
+
+	dashboard, err := h.service.GetMerchantDashboard(c.Request.Context(), userID, email)
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	recent := make([]MerchantDashboardTransactionResponse, 0, len(dashboard.RecentTransactions))
+	for _, transaction := range dashboard.RecentTransactions {
+		customerLabel := transaction.CustomerName
+		if customerLabel == "" {
+			customerLabel = strconv.FormatInt(transaction.CustomerID, 10)
+		}
+
+		recent = append(recent, MerchantDashboardTransactionResponse{
+			ID:                transaction.ID,
+			CustomerID:        transaction.CustomerID,
+			CustomerName:      customerLabel,
+			Amount:            transaction.Amount,
+			CommissionPercent: dashboard.Merchant.Commission,
+			CommissionAmount:  transaction.CommissionAmount,
+			MerchantNetAmount: transaction.MerchantNetAmount,
+			TransactionDate:   transaction.TransactionDate,
+		})
+	}
+
+	response.JSON(c, http.StatusOK, MerchantDashboardResponse{
+		ID:                 dashboard.Merchant.ID,
+		MerchantName:       dashboard.Merchant.MerchantName,
+		CommissionPercent:  dashboard.Merchant.Commission,
+		TotalTransactions:  dashboard.TotalTransactions,
+		TotalSales:         dashboard.TotalSales,
+		TotalCommission:    dashboard.TotalCommission,
+		MerchantEarnings:   dashboard.MerchantEarnings,
+		PayLaterCommission: dashboard.PayLaterCommission,
+		RecentTransactions: recent,
+	})
 }

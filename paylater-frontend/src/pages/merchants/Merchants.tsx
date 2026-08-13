@@ -1,6 +1,8 @@
 import { type FormEvent, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { useAuth } from '../../hooks/useAuth'
+import { useMerchantProfile } from '../../hooks/useMerchantProfile'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -81,10 +83,89 @@ function validateMerchantId(merchantId: string): string | undefined {
   return undefined
 }
 
-export function Merchants() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+function MerchantProfileView() {
+  const { profile, loading, error } = useMerchantProfile()
 
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-medium uppercase tracking-wide text-primary-600">
+          Merchants
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold text-text sm:text-3xl">
+          Merchant Profile
+        </h1>
+        <p className="mt-2 text-sm text-text-muted">
+          View your linked merchant profile and commission rate.
+        </p>
+      </header>
+
+      {error ? (
+        <Alert variant="error" title="Unable to load profile" message={error} />
+      ) : null}
+
+      <Card title="Your Merchant Profile" padding="md">
+        {loading ? (
+          <p className="text-sm text-text-muted">Loading...</p>
+        ) : (
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm font-medium text-text-muted">Merchant ID</dt>
+              <dd className="mt-1 text-sm text-text">{profile?.ID ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-text-muted">
+                Merchant Name
+              </dt>
+              <dd className="mt-1 text-sm text-text">
+                {profile?.MerchantName ?? '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-text-muted">
+                Phone Number
+              </dt>
+              <dd className="mt-1 text-sm text-text">
+                {profile?.PhoneNumber ?? '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-text-muted">
+                Onboarding Date
+              </dt>
+              <dd className="mt-1 text-sm text-text">
+                {profile?.Onboarding ?? '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-text-muted">
+                Commission Rate
+              </dt>
+              <dd className="mt-1 text-sm text-text">
+                {profile?.Commission ? `${profile.Commission}%` : '—'}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </Card>
+
+      <Card title="Dashboard" padding="md">
+        <p className="text-sm text-text-muted">
+          View transaction totals, sales, commission, and recent customer
+          purchases on your merchant dashboard.
+        </p>
+        <Link
+          to="/merchant"
+          className="mt-3 inline-block text-sm font-medium text-primary-600 hover:text-primary-700 focus:outline-none focus:underline"
+        >
+          Go to merchant dashboard
+        </Link>
+      </Card>
+    </div>
+  )
+}
+
+function AdminMerchantManagement() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
@@ -252,60 +333,53 @@ export function Merchants() {
         />
       ) : null}
 
-      <Alert
-        variant="info"
-        message="The current API does not provide a merchant list endpoint. Create merchants using the form above, or update commission by merchant ID below."
-      />
+      <Card title="Update Merchant Commission" padding="md">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={handleUpdateSubmit}
+          noValidate
+        >
+          {updateError ? (
+            <Alert
+              variant="error"
+              title={updateError.title}
+              message={updateError.message}
+            />
+          ) : null}
 
-      {isAdmin ? (
-        <Card title="Update Merchant Commission" padding="md">
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={handleUpdateSubmit}
-            noValidate
-          >
-            {updateError ? (
-              <Alert
-                variant="error"
-                title={updateError.title}
-                message={updateError.message}
-              />
-            ) : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Merchant ID"
+              name="merchant_id"
+              inputMode="numeric"
+              value={updateMerchantId}
+              onChange={(event) => setUpdateMerchantId(event.target.value)}
+              error={updateFieldErrors.merchant_id}
+              fullWidth
+              required
+              disabled={updateLoading}
+            />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label="Merchant ID"
-                name="merchant_id"
-                inputMode="numeric"
-                value={updateMerchantId}
-                onChange={(event) => setUpdateMerchantId(event.target.value)}
-                error={updateFieldErrors.merchant_id}
-                fullWidth
-                required
-                disabled={updateLoading}
-              />
+            <Input
+              label="Commission"
+              name="commission"
+              inputMode="decimal"
+              value={updateCommission}
+              onChange={(event) => setUpdateCommission(event.target.value)}
+              error={updateFieldErrors.commission}
+              fullWidth
+              required
+              disabled={updateLoading}
+            />
+          </div>
 
-              <Input
-                label="Commission"
-                name="commission"
-                inputMode="decimal"
-                value={updateCommission}
-                onChange={(event) => setUpdateCommission(event.target.value)}
-                error={updateFieldErrors.commission}
-                fullWidth
-                required
-                disabled={updateLoading}
-              />
-            </div>
-
-            <div>
-              <Button type="submit" loading={updateLoading} disabled={updateLoading}>
-                {updateLoading ? 'Updating...' : 'Update Commission'}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      ) : null}
+          <div>
+            <Button type="submit" loading={updateLoading} disabled={updateLoading}>
+              {updateLoading ? 'Updating...' : 'Update Commission'}
+            </Button>
+          </div>
+        </form>
+      </Card>
 
       <Modal
         isOpen={isCreateModalOpen}
@@ -417,4 +491,15 @@ export function Merchants() {
       </Modal>
     </div>
   )
+}
+
+export function Merchants() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
+  if (!isAdmin) {
+    return <MerchantProfileView />
+  }
+
+  return <AdminMerchantManagement />
 }

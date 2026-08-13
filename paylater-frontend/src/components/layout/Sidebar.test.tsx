@@ -54,7 +54,7 @@ describe('Sidebar', () => {
   it('renders merchant navigation links', () => {
     renderSidebarForRole('merchant')
 
-    expectNavLinks(['Dashboard', 'Merchants', 'Settings'])
+    expectNavLinks(['Dashboard', 'Merchant Profile', 'Settings'])
     expectNoNavLink('Customers')
     expectNoNavLink('Transactions')
     expectNoNavLink('Paybacks')

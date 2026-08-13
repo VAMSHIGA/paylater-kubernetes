@@ -26,4 +26,14 @@ func TransactionRoutes(
 		),
 		handler.CreateTransaction,
 	)
+
+	router.GET(
+		"/transactions",
+		middleware.AuthMiddleware(),
+		middleware.AuthorizeRoles(
+			constants.RoleAdmin,
+			constants.RoleCustomer,
+		),
+		handler.ListTransactions,
+	)
 }

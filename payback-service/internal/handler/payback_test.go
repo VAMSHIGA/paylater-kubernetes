@@ -36,6 +36,31 @@ func (s *handlerRepoStub) CreatePayback(
 	return s.createErr
 }
 
+func (s *handlerRepoStub) ListPaybacks(context.Context) ([]sqlc.Payback, error) {
+	return []sqlc.Payback{
+		{
+			ID:          1,
+			CustomerID:  2,
+			Amount:      "50.00",
+			PaymentDate: time.Date(2026, 8, 12, 0, 0, 0, 0, time.UTC),
+		},
+	}, nil
+}
+
+func (s *handlerRepoStub) ListPaybacksByCustomerID(
+	_ context.Context,
+	customerID int64,
+) ([]sqlc.Payback, error) {
+	return []sqlc.Payback{
+		{
+			ID:          4,
+			CustomerID:  customerID,
+			Amount:      "100.00",
+			PaymentDate: time.Date(2026, 8, 12, 0, 0, 0, 0, time.UTC),
+		},
+	}, nil
+}
+
 type stubOwnershipResolver struct {
 	customerID int64
 }
@@ -113,7 +138,7 @@ func TestCreatePayback_ReturnsBadRequestForInvalidAmount(t *testing.T) {
 	}
 }
 
-func TestCreatePayback_AdminBypassesBalanceValidation(t *testing.T) {
+func TestCreatePayback_AdminEnforcesBalanceValidation(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &handlerRepoStub{}
@@ -144,8 +169,68 @@ func TestCreatePayback_AdminBypassesBalanceValidation(t *testing.T) {
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d body=%s", recorder.Code, recorder.Body.String())
 	}
-	if repo.enforceBalanceValidation {
-		t.Fatal("expected admin to bypass balance validation")
+	if !repo.enforceBalanceValidation {
+		t.Fatal("expected admin balance enforcement")
+	}
+}
+
+func TestListPaybacks_CustomerSeesOwnedPaybacksOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &handlerRepoStub{}
+	handler := NewPaybackHandler(service.NewPaybackService(repo), stubOwnershipResolver{customerID: 7})
+
+	router := gin.New()
+	router.GET("/paybacks", func(c *gin.Context) {
+		c.Set(constants.ContextKeyRole, constants.RoleCustomer)
+		c.Set(constants.ContextKeyUserID, int64(10))
+		handler.ListPaybacks(c)
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/paybacks", nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	var items []PaybackResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &items); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if len(items) != 1 || items[0].CustomerID != 7 || items[0].Amount != "100.00" {
+		t.Fatalf("unexpected items: %+v", items)
+	}
+}
+
+func TestListPaybacks_AdminSeesAllPaybacks(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &handlerRepoStub{}
+	handler := NewPaybackHandler(service.NewPaybackService(repo), nil)
+
+	router := gin.New()
+	router.GET("/paybacks", func(c *gin.Context) {
+		c.Set(constants.ContextKeyRole, constants.RoleAdmin)
+		c.Set(constants.ContextKeyUserID, int64(1))
+		handler.ListPaybacks(c)
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/paybacks", nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	var items []PaybackResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &items); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if len(items) != 1 || items[0].ID != 1 {
+		t.Fatalf("unexpected items: %+v", items)
 	}
 }
 

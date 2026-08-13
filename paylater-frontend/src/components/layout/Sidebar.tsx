@@ -17,6 +17,7 @@ import type { UserRole } from '../../types'
 
 export interface SidebarNavItem {
   label: string
+  merchantLabel?: string
   to: string
   icon: LucideIcon
   allowedRoles: UserRole[]
@@ -51,6 +52,7 @@ const defaultNavItems: SidebarNavItem[] = [
   },
   {
     label: 'Merchants',
+    merchantLabel: 'Merchant Profile',
     to: '/merchants',
     icon: Store,
     allowedRoles: ['admin', 'merchant'],
@@ -83,11 +85,11 @@ const defaultNavItems: SidebarNavItem[] = [
 
 function linkClassName(isActive: boolean, collapsed: boolean): string {
   return cn(
-    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+    'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
     isActive
-      ? 'bg-primary-50 text-primary-700'
-      : 'text-text-muted hover:bg-slate-100 hover:text-text',
+      ? 'bg-primary-600 text-white shadow-sm'
+      : 'text-slate-300 hover:bg-white/10 hover:text-white',
     collapsed && 'justify-center px-2',
   )
 }
@@ -131,7 +133,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-surface transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-navy-900 to-navy-800 text-white transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           collapsed && 'w-20',
           className,
@@ -139,19 +141,19 @@ export function Sidebar({
       >
         <div
           className={cn(
-            'flex h-16 shrink-0 items-center border-b border-slate-100 px-4',
+            'flex h-16 shrink-0 items-center border-b border-white/10 px-4',
             collapsed && 'justify-center px-2',
           )}
         >
           <div className="flex items-center gap-2.5">
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-500 text-sm font-bold text-white shadow-lg"
               aria-hidden="true"
             >
               P
             </span>
             {!collapsed ? (
-              <span className="text-lg font-semibold text-text">PayLater</span>
+              <span className="text-lg font-bold tracking-tight">PayLater</span>
             ) : null}
           </div>
         </div>
@@ -160,22 +162,26 @@ export function Sidebar({
           aria-label="Main navigation"
           className="flex flex-1 flex-col overflow-y-auto px-3 py-4"
         >
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1.5">
             {visibleItems.map((item) => {
               const Icon = item.icon
+              const label =
+                user?.role === 'merchant' && item.merchantLabel
+                  ? item.merchantLabel
+                  : item.label
 
               return (
                 <li key={item.to}>
                   <NavLink
                     to={item.to}
                     end={item.to === '/'}
-                    title={collapsed ? item.label : undefined}
+                    title={collapsed ? label : undefined}
                     className={({ isActive }) =>
                       linkClassName(isActive, collapsed)
                     }
                   >
                     <Icon size={20} aria-hidden="true" className="shrink-0" />
-                    {!collapsed ? <span>{item.label}</span> : null}
+                    {!collapsed ? <span>{label}</span> : null}
                   </NavLink>
                 </li>
               )
@@ -183,13 +189,13 @@ export function Sidebar({
           </ul>
         </nav>
 
-        <div className="border-t border-slate-100 p-3">
+        <div className="border-t border-white/10 p-3">
           {onCollapse ? (
             <button
               type="button"
               onClick={onCollapse}
               className={cn(
-                'mb-2 hidden w-full rounded-lg px-3 py-2 text-sm text-text-muted transition-colors hover:bg-slate-100 hover:text-text lg:inline-flex',
+                'mb-2 hidden w-full rounded-xl px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/10 hover:text-white lg:inline-flex',
                 collapsed ? 'justify-center' : 'justify-start',
               )}
             >
@@ -202,8 +208,8 @@ export function Sidebar({
             onClick={onLogout}
             title={collapsed ? 'Logout' : undefined}
             className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition-colors',
-              'hover:bg-slate-100 hover:text-text',
+              'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors',
+              'hover:bg-white/10 hover:text-white',
               'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
               collapsed && 'justify-center px-2',
             )}

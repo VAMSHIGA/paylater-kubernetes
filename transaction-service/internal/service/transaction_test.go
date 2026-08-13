@@ -33,6 +33,17 @@ func (s *transactionRepoStub) CreateTransaction(
 	return s.createErr
 }
 
+func (s *transactionRepoStub) ListTransactions(context.Context) ([]sqlc.Transaction, error) {
+	return []sqlc.Transaction{{ID: 1}}, nil
+}
+
+func (s *transactionRepoStub) ListTransactionsByCustomerID(
+	_ context.Context,
+	customerID int64,
+) ([]sqlc.Transaction, error) {
+	return []sqlc.Transaction{{ID: 2, CustomerID: customerID}}, nil
+}
+
 func TestCreateTransaction_EnforcesCreditLimitForCustomers(t *testing.T) {
 	t.Parallel()
 
@@ -98,5 +109,35 @@ func TestCreateTransaction_PropagatesCreditLimitError(t *testing.T) {
 	err := svc.CreateTransaction(context.Background(), params, "customer")
 	if !errors.Is(err, platformerrors.ErrCreditLimitExceeded) {
 		t.Fatalf("expected ErrCreditLimitExceeded, got %v", err)
+	}
+}
+
+func TestListTransactions_CustomerUsesOwnedCustomerScope(t *testing.T) {
+	t.Parallel()
+
+	repo := &transactionRepoStub{}
+	svc := &TransactionService{repo: repo}
+
+	items, err := svc.ListTransactions(context.Background(), "customer", 9)
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if len(items) != 1 || items[0].CustomerID != 9 {
+		t.Fatalf("unexpected items: %+v", items)
+	}
+}
+
+func TestListTransactions_AdminUsesGlobalScope(t *testing.T) {
+	t.Parallel()
+
+	repo := &transactionRepoStub{}
+	svc := &TransactionService{repo: repo}
+
+	items, err := svc.ListTransactions(context.Background(), "admin", 0)
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if len(items) != 1 || items[0].ID != 1 {
+		t.Fatalf("unexpected items: %+v", items)
 	}
 }

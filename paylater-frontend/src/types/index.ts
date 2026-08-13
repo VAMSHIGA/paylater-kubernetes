@@ -39,6 +39,8 @@ export interface Customer {
   Name: string
   Email: string
   CreditLimit: string
+  OutstandingDue?: string
+  AvailableCredit?: string
 }
 
 /** POST /customers request body */
@@ -61,6 +63,40 @@ export interface UpdateMerchantCommissionRequest {
   commission: string
 }
 
+/** Merchant record from GET /merchants/me */
+export interface Merchant {
+  ID: number
+  MerchantName: string
+  PhoneNumber: string
+  Onboarding: string
+  Commission: string
+}
+
+/** GET /merchants/me/dashboard transaction row */
+export interface MerchantDashboardTransaction {
+  ID: number
+  CustomerID: number
+  CustomerName: string
+  Amount: string
+  CommissionPercent: string
+  CommissionAmount: string
+  MerchantNetAmount: string
+  TransactionDate: string
+}
+
+/** GET /merchants/me/dashboard response */
+export interface MerchantDashboard {
+  ID: number
+  MerchantName: string
+  CommissionPercent: string
+  TotalTransactions: number
+  TotalSales: string
+  TotalCommission: string
+  MerchantEarnings: string
+  PayLaterCommission: string
+  RecentTransactions: MerchantDashboardTransaction[]
+}
+
 /** POST /transactions request body */
 export interface CreateTransactionRequest {
   customer_id: number
@@ -70,11 +106,29 @@ export interface CreateTransactionRequest {
   transaction_date: string
 }
 
+/** GET /transactions row */
+export interface Transaction {
+  ID: number
+  CustomerID: number
+  MerchantID: number
+  Amount: string
+  Commission: string
+  TransactionDate: string
+}
+
 /** POST /paybacks request body */
 export interface CreatePaybackRequest {
   customer_id: number
   amount: string
   payment_date: string
+}
+
+/** GET /paybacks row */
+export interface Payback {
+  ID: number
+  CustomerID: number
+  Amount: string
+  PaymentDate: string
 }
 
 /** GET /reports/merchant-fees row */

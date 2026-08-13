@@ -61,3 +61,98 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.TransactionDate,
 	)
 }
+
+const listTransactions = `-- name: ListTransactions :many
+
+SELECT
+    id,
+    customer_id,
+    merchant_id,
+    amount,
+    commission,
+    transaction_date
+FROM transactions
+ORDER BY id DESC
+`
+
+// ===========================
+// List Transactions
+// ===========================
+// Returns all transactions ordered by newest first.
+func (q *Queries) ListTransactions(ctx context.Context) ([]Transaction, error) {
+	rows, err := q.db.QueryContext(ctx, listTransactions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Transaction
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.MerchantID,
+			&i.Amount,
+			&i.Commission,
+			&i.TransactionDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTransactionsByCustomerID = `-- name: ListTransactionsByCustomerID :many
+
+SELECT
+    id,
+    customer_id,
+    merchant_id,
+    amount,
+    commission,
+    transaction_date
+FROM transactions
+WHERE customer_id = ?
+ORDER BY id DESC
+`
+
+// ===========================
+// List Transactions By Customer ID
+// ===========================
+// Returns transactions for a single customer ordered by newest first.
+func (q *Queries) ListTransactionsByCustomerID(ctx context.Context, customerID int64) ([]Transaction, error) {
+	rows, err := q.db.QueryContext(ctx, listTransactionsByCustomerID, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Transaction
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.MerchantID,
+			&i.Amount,
+			&i.Commission,
+			&i.TransactionDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

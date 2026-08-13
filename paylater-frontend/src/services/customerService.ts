@@ -13,6 +13,12 @@ export async function getCustomers(): Promise<Customer[]> {
   return data
 }
 
+export async function getMyCustomer(): Promise<Customer> {
+  const { data } = await apiClient.get<Customer>('/customers/me')
+
+  return data
+}
+
 export async function createCustomer(
   payload: CreateCustomerRequest,
 ): Promise<string> {

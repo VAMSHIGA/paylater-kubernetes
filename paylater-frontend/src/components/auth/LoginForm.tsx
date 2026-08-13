@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -85,19 +85,27 @@ export function LoginForm() {
         />
       ) : null}
 
-      <Input
-        label="Email"
-        type="email"
-        name="email"
-        autoComplete="email"
-        placeholder="Enter your email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        error={fieldErrors.email}
-        fullWidth
-        required
-        disabled={loading}
-      />
+      <div className="relative w-full">
+        <Input
+          label="Email"
+          type="email"
+          name="email"
+          autoComplete="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={fieldErrors.email}
+          fullWidth
+          required
+          disabled={loading}
+          className="pl-10 transition-shadow duration-200 focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]"
+        />
+        <Mail
+          size={18}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-[2.2rem] text-text-muted"
+        />
+      </div>
 
       <div className="relative w-full">
         <Input
@@ -112,14 +120,19 @@ export function LoginForm() {
           fullWidth
           required
           disabled={loading}
-          className="pr-10"
+          className="pl-10 pr-10 transition-shadow duration-200 focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]"
+        />
+        <Lock
+          size={18}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-[2.2rem] text-text-muted"
         />
         <button
           type="button"
           onClick={() => setShowPassword((current) => !current)}
           aria-label={showPassword ? 'Hide password' : 'Show password'}
           disabled={loading}
-          className="absolute right-3 top-[2.15rem] rounded-md p-1 text-text-muted transition-colors hover:text-text focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed"
+          className="absolute right-3 top-[2.15rem] rounded-md p-1 text-text-muted transition-colors hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed"
         >
           {showPassword ? (
             <EyeOff size={18} aria-hidden="true" />
@@ -129,7 +142,13 @@ export function LoginForm() {
         </button>
       </div>
 
-      <Button type="submit" fullWidth loading={loading} disabled={loading}>
+      <Button
+        type="submit"
+        fullWidth
+        loading={loading}
+        disabled={loading}
+        className="mt-1 shadow-md shadow-primary-600/20 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary-600/25 active:translate-y-0"
+      >
         {loading ? 'Logging in...' : 'Login'}
       </Button>
 
@@ -137,9 +156,9 @@ export function LoginForm() {
         Don&apos;t have an account?{' '}
         <Link
           to="/register"
-          className="font-medium text-primary-600 hover:text-primary-700 focus:outline-none focus:underline"
+          className="font-semibold text-primary-600 hover:text-primary-700 focus:outline-none focus:underline"
         >
-          Register
+          Create account
         </Link>
       </p>
     </form>

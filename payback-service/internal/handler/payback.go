@@ -1,8 +1,7 @@
 // Package handler contains HTTP handlers for Payback Service APIs.
 //
 // POST /paybacks records a customer repayment. Access is admin or customer.
-// payment_date must be YYYY-MM-DD. Customer-role callers cannot repay more
-// than their outstanding due.
+// payment_date must be YYYY-MM-DD. Payback amount cannot exceed outstanding due.
 package handler
 
 import (
@@ -100,6 +99,46 @@ func (h *PaybackHandler) CreatePayback(c *gin.Context) {
 	}
 
 	response.SuccessMessage(c, http.StatusCreated, "Payback created successfully")
+}
+
+// PaybackResponse is returned by GET /paybacks.
+type PaybackResponse struct {
+	ID          int64  `json:"ID"`
+	CustomerID  int64  `json:"CustomerID"`
+	Amount      string `json:"Amount"`
+	PaymentDate string `json:"PaymentDate"`
+}
+
+// ListPaybacks handles GET /paybacks.
+func (h *PaybackHandler) ListPaybacks(c *gin.Context) {
+	role := callerRole(c)
+
+	var customerID int64
+	if role == constants.RoleCustomer {
+		ownedCustomerID, err := customerauth.OwnedCustomerIDFromContext(c, h.ownershipResolver)
+		if customerauth.WriteOwnershipError(c, err) {
+			return
+		}
+		customerID = ownedCustomerID
+	}
+
+	paybacks, err := h.service.ListPaybacks(c.Request.Context(), role, customerID)
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	items := make([]PaybackResponse, 0, len(paybacks))
+	for _, payback := range paybacks {
+		items = append(items, PaybackResponse{
+			ID:          payback.ID,
+			CustomerID:  payback.CustomerID,
+			Amount:      payback.Amount,
+			PaymentDate: payback.PaymentDate.Format("2006-01-02"),
+		})
+	}
+
+	response.JSON(c, http.StatusOK, items)
 }
 
 func callerRole(c *gin.Context) string {

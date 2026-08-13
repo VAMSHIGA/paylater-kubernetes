@@ -1,7 +1,13 @@
 import axios from 'axios'
 
-import type { ApiMessageResponse, CreateTransactionRequest } from '../types'
+import type { ApiMessageResponse, CreateTransactionRequest, Transaction } from '../types'
 import { apiClient } from './api'
+
+export async function listTransactions(): Promise<Transaction[]> {
+  const { data } = await apiClient.get<Transaction[]>('/transactions')
+
+  return data
+}
 
 export async function createTransaction(
   payload: CreateTransactionRequest,

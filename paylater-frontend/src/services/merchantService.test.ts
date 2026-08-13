@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { apiClient } from './api'
 import {
   createMerchant,
+  getMerchantDashboard,
   getMerchantErrorMessage,
+  getMyMerchant,
   updateMerchantCommission,
 } from './merchantService'
 
@@ -12,6 +14,7 @@ vi.mock('./api', () => ({
   apiClient: {
     post: vi.fn(),
     put: vi.fn(),
+    get: vi.fn(),
   },
 }))
 
@@ -38,6 +41,51 @@ describe('merchantService', () => {
       onboarding: '2026-08-10',
       commission: '2.5',
     })
+  })
+
+  it('loads the current merchant profile', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        ID: 4,
+        MerchantName: 'Shop',
+        PhoneNumber: '1234567890',
+        Onboarding: '2026-08-10',
+        Commission: '5.00',
+      },
+    })
+
+    await expect(getMyMerchant()).resolves.toEqual({
+      ID: 4,
+      MerchantName: 'Shop',
+      PhoneNumber: '1234567890',
+      Onboarding: '2026-08-10',
+      Commission: '5.00',
+    })
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/merchants/me')
+  })
+
+  it('loads the merchant dashboard', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        ID: 4,
+        MerchantName: 'Shop',
+        CommissionPercent: '5.00',
+        TotalTransactions: 2,
+        TotalSales: '2000.00',
+        TotalCommission: '100.00',
+        MerchantEarnings: '1900.00',
+        PayLaterCommission: '100.00',
+        RecentTransactions: [],
+      },
+    })
+
+    await expect(getMerchantDashboard()).resolves.toMatchObject({
+      TotalTransactions: 2,
+      TotalSales: '2000.00',
+    })
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/merchants/me/dashboard')
   })
 
   it('updates merchant commission', async () => {

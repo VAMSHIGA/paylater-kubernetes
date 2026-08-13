@@ -17,9 +17,8 @@ describe('RegisterForm', () => {
       </MemoryRouter>,
     )
 
-    const options = screen.getAllByRole('option').map((option) => option.textContent)
-
-    expect(options).toEqual(['Customer', 'Merchant'])
-    expect(screen.queryByRole('option', { name: 'Admin' })).toBeNull()
+    expect(screen.getByRole('button', { name: /Customer/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Merchant/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Admin/i })).toBeNull()
   })
 })

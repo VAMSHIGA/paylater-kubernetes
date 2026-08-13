@@ -27,6 +27,8 @@ type transactionRepository interface {
 		params sqlc.CreateTransactionParams,
 		enforceCreditLimit bool,
 	) error
+	ListTransactions(ctx context.Context) ([]sqlc.Transaction, error)
+	ListTransactionsByCustomerID(ctx context.Context, customerID int64) ([]sqlc.Transaction, error)
 }
 
 // TransactionService contains the business logic related to PayLater transactions.
@@ -67,4 +69,17 @@ func (s *TransactionService) CreateTransaction(
 	enforceCreditLimit := callerRole == constants.RoleCustomer
 
 	return s.repo.CreateTransaction(ctx, params, enforceCreditLimit)
+}
+
+// ListTransactions returns transactions visible to the caller.
+func (s *TransactionService) ListTransactions(
+	ctx context.Context,
+	callerRole string,
+	customerID int64,
+) ([]sqlc.Transaction, error) {
+	if callerRole == constants.RoleCustomer {
+		return s.repo.ListTransactionsByCustomerID(ctx, customerID)
+	}
+
+	return s.repo.ListTransactions(ctx)
 }

@@ -10,8 +10,7 @@ import (
 	"paylater/shared/creditlimit"
 )
 
-// CreatePayback inserts a payback and optionally enforces remaining-due validation
-// for customer-role callers.
+// CreatePayback inserts a payback and enforces remaining-due validation for all callers.
 func (r *Repository) CreatePayback(
 	ctx context.Context,
 	params sqlc.CreatePaybackParams,

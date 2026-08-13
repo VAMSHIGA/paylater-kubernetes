@@ -24,6 +24,20 @@ func RegisterMerchantRoutes(
 		handler.CreateMerchant,
 	)
 
+	router.GET(
+		"/merchants/me",
+		middleware.AuthMiddleware(),
+		middleware.AuthorizeRoles(constants.RoleMerchant),
+		handler.GetMyMerchant,
+	)
+
+	router.GET(
+		"/merchants/me/dashboard",
+		middleware.AuthMiddleware(),
+		middleware.AuthorizeRoles(constants.RoleMerchant),
+		handler.GetMyMerchantDashboard,
+	)
+
 	router.PUT(
 		"/merchants/:id",
 		middleware.AuthMiddleware(),

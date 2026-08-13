@@ -105,6 +105,50 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	response.SuccessMessage(c, http.StatusCreated, "Transaction created successfully")
 }
 
+// TransactionResponse is returned by GET /transactions.
+type TransactionResponse struct {
+	ID              int64  `json:"ID"`
+	CustomerID      int64  `json:"CustomerID"`
+	MerchantID      int64  `json:"MerchantID"`
+	Amount          string `json:"Amount"`
+	Commission      string `json:"Commission"`
+	TransactionDate string `json:"TransactionDate"`
+}
+
+// ListTransactions handles GET /transactions.
+func (h *TransactionHandler) ListTransactions(c *gin.Context) {
+	role := callerRole(c)
+
+	var customerID int64
+	if role == constants.RoleCustomer {
+		ownedCustomerID, err := customerauth.OwnedCustomerIDFromContext(c, h.ownershipResolver)
+		if customerauth.WriteOwnershipError(c, err) {
+			return
+		}
+		customerID = ownedCustomerID
+	}
+
+	transactions, err := h.service.ListTransactions(c.Request.Context(), role, customerID)
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	items := make([]TransactionResponse, 0, len(transactions))
+	for _, transaction := range transactions {
+		items = append(items, TransactionResponse{
+			ID:              transaction.ID,
+			CustomerID:      transaction.CustomerID,
+			MerchantID:      transaction.MerchantID,
+			Amount:          transaction.Amount,
+			Commission:      transaction.Commission,
+			TransactionDate: transaction.TransactionDate.Format("2006-01-02"),
+		})
+	}
+
+	response.JSON(c, http.StatusOK, items)
+}
+
 func callerRole(c *gin.Context) string {
 	roleValue, exists := c.Get(constants.ContextKeyRole)
 	if !exists {

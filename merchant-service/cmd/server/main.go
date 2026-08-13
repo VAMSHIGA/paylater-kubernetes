@@ -2,11 +2,13 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gin-gonic/gin"
 
 	"paylater/merchant-service/internal/handler"
+	"paylater/merchant-service/internal/migrate"
 	"paylater/merchant-service/internal/repository"
 	"paylater/merchant-service/internal/router"
 	"paylater/merchant-service/internal/service"
@@ -27,6 +29,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer conn.Close()
+
+	if err := migrate.ApplyUserIDLinkage(context.Background(), conn, ""); err != nil {
+		log.Fatalf("merchant ownership migration failed: %v", err)
+	}
 
 	repo := repository.New(conn)
 	merchantService := service.NewMerchantService(repo)

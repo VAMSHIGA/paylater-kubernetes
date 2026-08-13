@@ -1,7 +1,13 @@
 import axios from 'axios'
 
-import type { ApiMessageResponse, CreatePaybackRequest } from '../types'
+import type { ApiMessageResponse, CreatePaybackRequest, Payback } from '../types'
 import { apiClient } from './api'
+
+export async function listPaybacks(): Promise<Payback[]> {
+  const { data } = await apiClient.get<Payback[]>('/paybacks')
+
+  return data
+}
 
 export async function createPayback(
   payload: CreatePaybackRequest,

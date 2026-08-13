@@ -26,8 +26,8 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<GuestRoute />}>
+        <Route path="/login" element={<Login />} />
         <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Route>
       </Route>

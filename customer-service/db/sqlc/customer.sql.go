@@ -52,6 +52,39 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 	)
 }
 
+const getCustomerByUserID = `-- name: GetCustomerByUserID :one
+
+SELECT
+    id,
+    user_id,
+    name,
+    email,
+    credit_limit
+FROM customers
+WHERE user_id = ?
+LIMIT 1
+`
+
+// ===========================
+// Get Customer By User ID
+// ===========================
+// Returns the full customer profile owned by an identity user.
+//
+// SQLC generates:
+// GetCustomerByUserID(ctx, user_id)
+func (q *Queries) GetCustomerByUserID(ctx context.Context, userID sql.NullInt64) (Customer, error) {
+	row := q.db.QueryRowContext(ctx, getCustomerByUserID, userID)
+	var i Customer
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Email,
+		&i.CreditLimit,
+	)
+	return i, err
+}
+
 const getCustomerIDByUserID = `-- name: GetCustomerIDByUserID :one
 
 SELECT id

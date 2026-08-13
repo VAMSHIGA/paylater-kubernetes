@@ -9,6 +9,7 @@ import { Merchants } from './Merchants'
 vi.mock('../../services/merchantService', () => ({
   createMerchant: vi.fn(),
   updateMerchantCommission: vi.fn(),
+  getMyMerchant: vi.fn(),
   getMerchantErrorMessage: vi.fn(),
 }))
 
@@ -33,6 +34,13 @@ describe('Merchants', () => {
     mockedMerchantService.updateMerchantCommission.mockResolvedValue(
       'Merchant commission updated successfully',
     )
+    mockedMerchantService.getMyMerchant.mockResolvedValue({
+      ID: 6,
+      MerchantName: 'Test Merchant',
+      PhoneNumber: '1234567890',
+      Onboarding: '2026-08-10',
+      Commission: '5.00',
+    })
     mockedMerchantService.getMerchantErrorMessage.mockReturnValue({
       title: 'Request failed',
       message: 'Unable to save merchant',
@@ -44,15 +52,33 @@ describe('Merchants', () => {
 
     expect(screen.getByText('Update Merchant Commission')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /^Merchant ID/ })).toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        'The current API does not provide a merchant list endpoint.',
+      ),
+    ).not.toBeInTheDocument()
   })
 
-  it('hides update commission form for merchant', () => {
+  it('shows merchant profile for merchant users', async () => {
     renderMerchants('merchant')
 
     expect(
+      screen.getByRole('heading', { name: 'Merchant Profile' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Create Merchant' }),
+    ).not.toBeInTheDocument()
+    expect(
       screen.queryByText('Update Merchant Commission'),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create Merchant' })).toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        'The current API does not provide a merchant list endpoint.',
+      ),
+    ).not.toBeInTheDocument()
+    expect(await screen.findByText('Test Merchant')).toBeInTheDocument()
+    expect(screen.getByText('6')).toBeInTheDocument()
+    expect(screen.getByText('5.00%')).toBeInTheDocument()
   })
 
   it('creates a merchant successfully', async () => {

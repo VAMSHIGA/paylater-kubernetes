@@ -5,6 +5,7 @@ import {
   createCustomer,
   getCustomerErrorMessage,
   getCustomers,
+  getMyCustomer,
 } from './customerService'
 
 vi.mock('./api', () => ({
@@ -31,6 +32,22 @@ describe('customerService', () => {
 
     await expect(getCustomers()).resolves.toEqual(customers)
     expect(mockedApiClient.get).toHaveBeenCalledWith('/customers')
+  })
+
+  it('fetches the authenticated customer profile', async () => {
+    const profile = {
+      ID: 8,
+      Name: 'Galinki',
+      Email: 'galinkivamshi420@gmail.com',
+      CreditLimit: '10000.00',
+      OutstandingDue: '300.00',
+      AvailableCredit: '9700.00',
+    }
+
+    mockedApiClient.get.mockResolvedValueOnce({ data: profile })
+
+    await expect(getMyCustomer()).resolves.toEqual(profile)
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/customers/me')
   })
 
   it('creates a customer', async () => {

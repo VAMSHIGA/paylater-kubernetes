@@ -16,6 +16,7 @@ import type {
   CustomerDue,
   MerchantFee,
 } from '../../types'
+import { formatMoney } from '../../utils/format'
 
 const merchantFeeColumns: TableColumn<MerchantFee>[] = [
   {
@@ -25,6 +26,7 @@ const merchantFeeColumns: TableColumn<MerchantFee>[] = [
   {
     key: 'Commission',
     header: 'Commission',
+    render: (row) => formatMoney(row.Commission),
   },
 ]
 
@@ -40,14 +42,17 @@ const customerDueColumns: TableColumn<CustomerDue>[] = [
   {
     key: 'total_transaction',
     header: 'Total Transaction',
+    render: (row) => formatMoney(row.total_transaction),
   },
   {
     key: 'total_repaid',
     header: 'Total Repaid',
+    render: (row) => formatMoney(row.total_repaid),
   },
   {
     key: 'remaining_due',
     header: 'Remaining Due',
+    render: (row) => formatMoney(row.remaining_due),
   },
 ]
 
@@ -63,10 +68,12 @@ const creditLimitColumns: TableColumn<CreditLimitCustomer>[] = [
   {
     key: 'credit_limit',
     header: 'Credit Limit',
+    render: (row) => formatMoney(row.credit_limit),
   },
   {
     key: 'remaining_due',
     header: 'Remaining Due',
+    render: (row) => formatMoney(row.remaining_due),
   },
 ]
 
@@ -208,7 +215,9 @@ export function Reports() {
         {totalDuesLoading ? (
           <p className="text-sm text-text-muted">Loading total dues...</p>
         ) : totalDuesError ? null : (
-          <p className="text-2xl font-semibold text-text">{totalDues}</p>
+          <p className="text-2xl font-semibold text-text">
+            {formatMoney(totalDues)}
+          </p>
         )}
       </Card>
 

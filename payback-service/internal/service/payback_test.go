@@ -28,6 +28,17 @@ func (s *paybackRepoStub) CreatePayback(
 	return s.createErr
 }
 
+func (s *paybackRepoStub) ListPaybacks(context.Context) ([]sqlc.Payback, error) {
+	return []sqlc.Payback{{ID: 1}}, nil
+}
+
+func (s *paybackRepoStub) ListPaybacksByCustomerID(
+	_ context.Context,
+	customerID int64,
+) ([]sqlc.Payback, error) {
+	return []sqlc.Payback{{ID: 2, CustomerID: customerID}}, nil
+}
+
 func TestCreatePayback_EnforcesBalanceForCustomers(t *testing.T) {
 	t.Parallel()
 
@@ -49,7 +60,7 @@ func TestCreatePayback_EnforcesBalanceForCustomers(t *testing.T) {
 	}
 }
 
-func TestCreatePayback_SkipsBalanceValidationForAdmins(t *testing.T) {
+func TestCreatePayback_EnforcesBalanceForAdmins(t *testing.T) {
 	t.Parallel()
 
 	repo := &paybackRepoStub{}
@@ -65,8 +76,8 @@ func TestCreatePayback_SkipsBalanceValidationForAdmins(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected success, got %v", err)
 	}
-	if repo.enforceBalanceValidation {
-		t.Fatal("expected admin to bypass balance validation")
+	if !repo.enforceBalanceValidation {
+		t.Fatal("expected balance validation for admin role")
 	}
 }
 
@@ -140,4 +151,42 @@ func (s *customerMissingRepoStub) CreatePayback(
 	bool,
 ) error {
 	return nil
+}
+
+func (s *customerMissingRepoStub) ListPaybacks(context.Context) ([]sqlc.Payback, error) {
+	return nil, nil
+}
+
+func (s *customerMissingRepoStub) ListPaybacksByCustomerID(context.Context, int64) ([]sqlc.Payback, error) {
+	return nil, nil
+}
+
+func TestListPaybacks_CustomerUsesOwnedCustomerScope(t *testing.T) {
+	t.Parallel()
+
+	repo := &paybackRepoStub{}
+	svc := &PaybackService{repo: repo}
+
+	items, err := svc.ListPaybacks(context.Background(), "customer", 9)
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if len(items) != 1 || items[0].CustomerID != 9 {
+		t.Fatalf("unexpected items: %+v", items)
+	}
+}
+
+func TestListPaybacks_AdminUsesGlobalScope(t *testing.T) {
+	t.Parallel()
+
+	repo := &paybackRepoStub{}
+	svc := &PaybackService{repo: repo}
+
+	items, err := svc.ListPaybacks(context.Background(), "admin", 0)
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if len(items) != 1 || items[0].ID != 1 {
+		t.Fatalf("unexpected items: %+v", items)
+	}
 }
