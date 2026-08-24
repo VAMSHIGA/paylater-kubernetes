@@ -38,3 +38,7 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
 
   return children ?? <Outlet />
 }
+
+
+
+// RoleGuard = Login check + Role check.

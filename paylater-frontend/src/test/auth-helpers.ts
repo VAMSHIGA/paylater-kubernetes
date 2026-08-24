@@ -27,3 +27,15 @@ export function seedAuthStorage(user: User, token?: string): string {
 
   return jwt
 }
+
+
+// Create fake Admin
+      // ↓
+// Store fake Admin login data
+//       ↓
+// Application thinks:
+// "An Admin is logged in"
+//       ↓
+// Open /admin
+//       ↓
+// Check Admin Dashboard

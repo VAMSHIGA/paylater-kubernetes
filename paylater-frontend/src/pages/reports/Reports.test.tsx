@@ -20,55 +20,87 @@ describe('Reports', () => {
     mockedReportService.getMerchantFees.mockResolvedValue([
       { MerchantName: 'Shop', Commission: '2.50' },
     ])
+
     mockedReportService.getCustomerDues.mockResolvedValue([])
+
     mockedReportService.getCreditLimit.mockResolvedValue([])
-    mockedReportService.getTotalDues.mockResolvedValue({ total_dues: '100.00' })
+
+    mockedReportService.getTotalDues.mockResolvedValue({
+      total_dues: '100.00',
+    })
+
     mockedReportService.getReportErrorMessage.mockReturnValue({
       title: 'Request failed',
       message: 'Failed to load report',
     })
   })
 
+  // Test Case 1: Check loading first, then show report data successfully
   it('renders loading and success states', async () => {
     render(<Reports />)
 
-    expect(screen.getByText('Loading total dues...')).toBeInTheDocument()
+    expect(
+      screen.getByText('Loading total dues...'),
+    ).toBeInTheDocument()
 
-    expect(await screen.findByText('₹100.00')).toBeInTheDocument()
-    expect(screen.getByText('Shop')).toBeInTheDocument()
+    expect(
+      await screen.findByText('₹100.00'),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByText('Shop'),
+    ).toBeInTheDocument()
   })
 
+  // Test Case 2: Check message when there is no customer dues data
   it('shows empty table message', async () => {
     render(<Reports />)
 
     expect(
-      await screen.findByText('No customer dues data available.'),
+      await screen.findByText(
+        'No customer dues data available.',
+      ),
     ).toBeInTheDocument()
   })
 
+  // Test Case 3: Check one report section can fail while other data still displays
   it('shows section error independently', async () => {
-    mockedReportService.getMerchantFees.mockRejectedValueOnce(new Error('fail'))
+    mockedReportService.getMerchantFees.mockRejectedValueOnce(
+      new Error('fail'),
+    )
 
     render(<Reports />)
 
-    expect(await screen.findByText('Failed to load report')).toBeInTheDocument()
-    expect(await screen.findByText('₹100.00')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Failed to load report'),
+    ).toBeInTheDocument()
+
+    expect(
+      await screen.findByText('₹100.00'),
+    ).toBeInTheDocument()
   })
 
+  // Test Case 4: Check Refresh Reports calls the backend again
   it('refreshes all report sections', async () => {
     const user = userEvent.setup()
+
     render(<Reports />)
 
     await screen.findByText('₹100.00')
 
-    const initialCalls = mockedReportService.getTotalDues.mock.calls.length
+    const initialCalls =
+      mockedReportService.getTotalDues.mock.calls.length
 
-    await user.click(screen.getByRole('button', { name: 'Refresh Reports' }))
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Refresh Reports',
+      }),
+    )
 
     await waitFor(() => {
-      expect(mockedReportService.getTotalDues.mock.calls.length).toBeGreaterThan(
-        initialCalls,
-      )
+      expect(
+        mockedReportService.getTotalDues.mock.calls.length,
+      ).toBeGreaterThan(initialCalls)
     })
   })
 })

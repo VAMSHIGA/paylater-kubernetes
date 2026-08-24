@@ -16,6 +16,7 @@ import { MetricCard } from '../../components/ui/MetricCard'
 import { SkeletonCard } from '../../components/ui/Skeleton'
 import { useAuth } from '../../hooks/useAuth'
 import { useMerchantDashboard } from '../../hooks/useMerchantDashboard'
+import type { MerchantDashboard } from '../../types'
 import { getDisplayName, getGreeting } from '../../utils/display'
 import { formatMoney } from '../../utils/format'
 
@@ -27,6 +28,23 @@ function formatCommissionPercent(value: string | undefined): string {
   return `${value}%`
 }
 
+function getAverageSale(totalSales: string, totalTransactions: number): string {
+  if (totalTransactions === 0) {
+    return '0.00'
+  }
+
+  return (Number(totalSales) / totalTransactions).toFixed(2)
+}
+
+function getMaxTransactionAmount(
+  transactions: MerchantDashboard['RecentTransactions'],
+): number {
+  return transactions.reduce(
+    (max, transaction) => Math.max(max, Number(transaction.Amount) || 0),
+    0,
+  )
+}
+
 export function MerchantDashboard() {
   const { user } = useAuth()
   const { dashboard, loading, error, refresh } = useMerchantDashboard()
@@ -34,6 +52,11 @@ export function MerchantDashboard() {
     user?.email,
     dashboard?.MerchantName,
   )
+  const hasSalesData =
+    !loading && dashboard !== null && dashboard.TotalTransactions > 0
+  const maxTransactionAmount = dashboard
+    ? getMaxTransactionAmount(dashboard.RecentTransactions)
+    : 0
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -99,10 +122,80 @@ export function MerchantDashboard() {
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-3xl border border-slate-200/80 bg-surface p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-text">Business Performance</h2>
-          <div className="mt-5 flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 text-center">
-            <p className="max-w-md text-sm text-text-muted">
-              Sales analytics will appear here as transactions are recorded.
-            </p>
+          <div
+            className={`mt-5 flex min-h-[220px] rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 ${
+              hasSalesData
+                ? 'flex-col justify-center py-6'
+                : 'items-center justify-center text-center'
+            }`}
+          >
+            {loading ? (
+              <SkeletonCard />
+            ) : hasSalesData && dashboard ? (
+              <div className="w-full space-y-6">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-sm text-text-muted">Total Sales</p>
+                    <p className="mt-1 text-2xl font-bold text-text">
+                      {formatMoney(dashboard.TotalSales)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-muted">Transactions</p>
+                    <p className="mt-1 text-2xl font-bold text-text">
+                      {dashboard.TotalTransactions}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-muted">Average Sale</p>
+                    <p className="mt-1 text-2xl font-bold text-text">
+                      {formatMoney(
+                        getAverageSale(
+                          dashboard.TotalSales,
+                          dashboard.TotalTransactions,
+                        ),
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {dashboard.RecentTransactions.map((transaction) => {
+                    const amount = Number(transaction.Amount) || 0
+                    const barWidth =
+                      maxTransactionAmount > 0
+                        ? Math.max((amount / maxTransactionAmount) * 100, 8)
+                        : 0
+
+                    return (
+                      <div key={transaction.ID}>
+                        <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                          <span className="font-medium text-text">
+                            {transaction.CustomerName}
+                          </span>
+                          <span className="text-text-muted">
+                            {formatMoney(transaction.Amount)}
+                          </span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-slate-200/80">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-primary-500 to-primary-700 transition-all duration-500"
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-text-muted">
+                          {transaction.TransactionDate}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="max-w-md text-sm text-text-muted">
+                Sales analytics will appear here as transactions are recorded.
+              </p>
+            )}
           </div>
         </div>
 

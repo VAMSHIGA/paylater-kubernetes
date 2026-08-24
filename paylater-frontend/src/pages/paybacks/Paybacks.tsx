@@ -7,35 +7,50 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Table, type TableColumn } from '../../components/ui/Table'
+
 import {
   createPayback,
   getPaybackErrorMessage,
   listPaybacks,
 } from '../../services/paybackService'
+
 import type { Payback } from '../../types'
 import { formatMoney } from '../../utils/format'
 
+
+// Form data
 interface FormState {
   customer_id: string
   amount: string
   payment_date: string
 }
 
+
+// Form validation errors
 interface FormErrors {
   customer_id?: string
   amount?: string
   payment_date?: string
 }
 
+
+// Payment date format
 const datePattern = /^\d{4}-\d{2}-\d{2}$/
 
+
+// Initial empty form
 const initialFormData: FormState = {
   customer_id: '',
   amount: '',
   payment_date: '',
 }
 
-function validateRequired(value: string, label: string): string | undefined {
+
+// Validate required fields
+function validateRequired(
+  value: string,
+  label: string,
+): string | undefined {
   if (!value.trim()) {
     return `${label} is required`
   }
@@ -43,10 +58,13 @@ function validateRequired(value: string, label: string): string | undefined {
   return undefined
 }
 
+
+// Validate Customer ID
 function validatePositiveInteger(
   value: string,
   label: string,
 ): string | undefined {
+
   const required = validateRequired(value, label)
 
   if (required) {
@@ -62,7 +80,10 @@ function validatePositiveInteger(
   return undefined
 }
 
+
+// Validate Amount
 function validateAmount(amount: string): string | undefined {
+
   const required = validateRequired(amount, 'Amount')
 
   if (required) {
@@ -78,8 +99,16 @@ function validateAmount(amount: string): string | undefined {
   return undefined
 }
 
-function validatePaymentDate(paymentDate: string): string | undefined {
-  const required = validateRequired(paymentDate, 'Payment date')
+
+// Validate Payment Date
+function validatePaymentDate(
+  paymentDate: string,
+): string | undefined {
+
+  const required = validateRequired(
+    paymentDate,
+    'Payment date',
+  )
 
   if (required) {
     return required
@@ -92,49 +121,108 @@ function validatePaymentDate(paymentDate: string): string | undefined {
   return undefined
 }
 
+
 export function Paybacks() {
+
+  // Get logged-in user
   const { user } = useAuth()
+
+  // Check whether logged-in user is a customer
   const isCustomer = user?.role === 'customer'
+
+
+  // Get customer profile
   const {
     profile,
     loading: profileLoading,
     error: profileError,
     refresh: refreshProfile,
   } = useCustomerProfile()
+
+
+  // Payback list
   const [paybacks, setPaybacks] = useState<Payback[]>([])
+
+  // Payback list loading state
   const [listLoading, setListLoading] = useState(true)
+
+  // Payback list error
   const [listError, setListError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Success message
+  const [successMessage, setSuccessMessage] =
+    useState<string | null>(null)
+
+  // Create Payback modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Create Payback loading state
   const [createLoading, setCreateLoading] = useState(false)
+
+  // Create Payback API error
   const [createError, setCreateError] = useState<{
     title: string
     message: string
   } | null>(null)
-  const [formData, setFormData] = useState(initialFormData)
-  const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
+
+  // Create Payback form data
+  const [formData, setFormData] =
+    useState(initialFormData)
+
+  // Form validation errors
+  const [fieldErrors, setFieldErrors] =
+    useState<FormErrors>({})
+
+
+  // ======================================================
+  // LOAD PAYBACKS
+  // ======================================================
 
   const loadPaybacks = useCallback(async () => {
+
+    // Start loading
     setListLoading(true)
+
+    // Clear previous error
     setListError(null)
 
     try {
+
+      // Get paybacks from backend
       const data = await listPaybacks()
+
+      // Store paybacks
       setPaybacks(data)
+
     } catch (error) {
+
+      // Backend failure while loading paybacks
       setPaybacks([])
-      setListError(getPaybackErrorMessage(error).message)
+
+      // Show API error
+      setListError(
+        getPaybackErrorMessage(error).message,
+      )
+
     } finally {
+
+      // Stop loading
       setListLoading(false)
     }
+
   }, [])
 
+
+  // Load paybacks when page opens
   useEffect(() => {
     void loadPaybacks()
   }, [loadPaybacks])
 
+
+  // Set customer ID automatically for customer users
   useEffect(() => {
     if (isCustomer && profile?.ID) {
+
       setFormData((current) => ({
         ...current,
         customer_id: String(profile.ID),
@@ -142,7 +230,13 @@ export function Paybacks() {
     }
   }, [isCustomer, profile?.ID])
 
+
+  // ======================================================
+  // PAYBACK TABLE COLUMNS
+  // ======================================================
+
   const columns = useMemo<Array<TableColumn<Payback>>>(() => {
+
     const baseColumns: Array<TableColumn<Payback>> = [
       {
         key: 'ID',
@@ -150,6 +244,8 @@ export function Paybacks() {
       },
     ]
 
+
+    // Admin can see Customer ID
     if (!isCustomer) {
       baseColumns.push({
         key: 'CustomerID',
@@ -157,10 +253,13 @@ export function Paybacks() {
       })
     }
 
+
     baseColumns.push(
       {
         key: 'Amount',
         header: 'Amount',
+
+        // Format amount as money
         render: (row) => formatMoney(row.Amount),
       },
       {
@@ -170,22 +269,43 @@ export function Paybacks() {
     )
 
     return baseColumns
+
   }, [isCustomer])
 
-  function openCreateModal() {
-    const nextForm = { ...initialFormData }
 
+  // ======================================================
+  // OPEN CREATE PAYBACK MODAL
+  // ======================================================
+
+  function openCreateModal() {
+
+    const nextForm = {
+      ...initialFormData,
+    }
+
+
+    // Automatically set Customer ID for customer
     if (isCustomer && profile?.ID) {
       nextForm.customer_id = String(profile.ID)
     }
 
+
     setFormData(nextForm)
     setFieldErrors({})
     setCreateError(null)
+
+    // Open modal
     setIsModalOpen(true)
   }
 
+
+  // ======================================================
+  // CLOSE CREATE PAYBACK MODAL
+  // ======================================================
+
   function closeCreateModal() {
+
+    // Don't close while creating
     if (createLoading) {
       return
     }
@@ -195,89 +315,175 @@ export function Paybacks() {
     setFieldErrors({})
   }
 
-  async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+
+  // ======================================================
+  // CREATE PAYBACK
+  // ======================================================
+
+  async function handleCreateSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+
+    // Prevent page refresh
     event.preventDefault()
 
+
+    // Get Customer ID
     const customerId = isCustomer
       ? profile?.ID
         ? String(profile.ID)
         : ''
       : formData.customer_id
 
+
+    // ==================================================
+    // VALIDATE FORM
+    // ==================================================
+
     const nextErrors: FormErrors = {
+
+      // Customer ID validation
       customer_id: isCustomer
         ? profile?.ID
           ? undefined
           : 'Your PayLater profile is not available yet'
-        : validatePositiveInteger(customerId, 'Customer ID'),
+        : validatePositiveInteger(
+            customerId,
+            'Customer ID',
+          ),
+
+      // Amount validation
       amount: validateAmount(formData.amount),
-      payment_date: validatePaymentDate(formData.payment_date),
+
+      // Payment date validation
+      payment_date: validatePaymentDate(
+        formData.payment_date,
+      ),
     }
 
+
+    // Store validation errors
     setFieldErrors(nextErrors)
+
+    // Clear previous API error
     setCreateError(null)
 
-    if (nextErrors.customer_id || nextErrors.amount || nextErrors.payment_date) {
+
+    // Stop if validation fails
+    if (
+      nextErrors.customer_id ||
+      nextErrors.amount ||
+      nextErrors.payment_date
+    ) {
       return
     }
 
+
+    // Start creating
     setCreateLoading(true)
 
+
     try {
+
+      // Create payback in backend
       const message = await createPayback({
         customer_id: Number(customerId),
         amount: formData.amount.trim(),
         payment_date: formData.payment_date.trim(),
       })
 
-      setSuccessMessage(message || 'Payback created successfully')
+
+      // Show success message
+      setSuccessMessage(
+        message || 'Payback created successfully',
+      )
+
+      // Close modal
       setIsModalOpen(false)
+
+      // Clear form
       setFormData(initialFormData)
+
+      // Refresh payback list
       await loadPaybacks()
+
+      // Refresh customer profile
       if (isCustomer) {
         await refreshProfile()
       }
+
     } catch (error) {
-      setCreateError(getPaybackErrorMessage(error))
+
+      // Backend failure while creating payback
+      setCreateError(
+        getPaybackErrorMessage(error),
+      )
+
     } finally {
+
+      // Stop creating
       setCreateLoading(false)
     }
   }
 
+
+  // ======================================================
+  // PAGE UI
+  // ======================================================
+
   return (
     <div className="space-y-6">
+
+      {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <header>
+
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">
             Paybacks
           </p>
+
           <h1 className="mt-1 text-2xl font-semibold text-text sm:text-3xl">
             Payback Management
           </h1>
+
           <p className="mt-2 text-sm text-text-muted">
             Record repayments and view your payback history.
           </p>
+
         </header>
 
+
+        {/* Create Payback button */}
         <Button
           type="button"
           onClick={openCreateModal}
-          disabled={isCustomer && (profileLoading || !profile?.ID)}
+          disabled={
+            isCustomer &&
+            (profileLoading || !profile?.ID)
+          }
         >
           Create Payback
         </Button>
+
       </div>
 
+
+      {/* Success message */}
       {successMessage ? (
         <Alert
           variant="success"
           title="Success"
           message={successMessage}
           dismissible
-          onDismiss={() => setSuccessMessage(null)}
+          onDismiss={() =>
+            setSuccessMessage(null)
+          }
         />
       ) : null}
 
+
+      {/* Customer profile error */}
       {isCustomer && profileError ? (
         <Alert
           variant="error"
@@ -286,8 +492,17 @@ export function Paybacks() {
         />
       ) : null}
 
+
+      {/* ==================================================
+          PAYBACK HISTORY
+          ================================================== */}
+
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-text">Payback History</h2>
+
+        <h2 className="text-lg font-semibold text-text">
+          Payback History
+        </h2>
+
         <Table
           columns={columns}
           data={paybacks}
@@ -296,15 +511,24 @@ export function Paybacks() {
           emptyMessage="No paybacks recorded yet."
           rowKey="ID"
         />
+
       </section>
+
+
+      {/* ==================================================
+          CREATE PAYBACK MODAL
+          ================================================== */}
 
       <Modal
         isOpen={isModalOpen}
         onClose={closeCreateModal}
         title="Create Payback"
         size="md"
+
         footer={
           <div className="flex justify-end gap-3">
+
+            {/* Cancel button */}
             <Button
               type="button"
               variant="outline"
@@ -313,23 +537,33 @@ export function Paybacks() {
             >
               Cancel
             </Button>
+
+
+            {/* Create Payback button */}
             <Button
               type="submit"
               form="create-payback-form"
               loading={createLoading}
               disabled={createLoading}
             >
-              {createLoading ? 'Creating...' : 'Create Payback'}
+              {createLoading
+                ? 'Creating...'
+                : 'Create Payback'}
             </Button>
+
           </div>
         }
       >
+
+        {/* Create Payback form */}
         <form
           id="create-payback-form"
           className="flex flex-col gap-4"
           onSubmit={handleCreateSubmit}
           noValidate
         >
+
+          {/* Backend/API error */}
           {createError ? (
             <Alert
               variant="error"
@@ -338,6 +572,8 @@ export function Paybacks() {
             />
           ) : null}
 
+
+          {/* Customer ID field - shown for admin */}
           {!isCustomer ? (
             <Input
               label="Customer ID"
@@ -357,6 +593,8 @@ export function Paybacks() {
             />
           ) : null}
 
+
+          {/* Amount field */}
           <Input
             label="Amount"
             name="amount"
@@ -374,6 +612,8 @@ export function Paybacks() {
             disabled={createLoading}
           />
 
+
+          {/* Payment Date field */}
           <Input
             label="Payment Date"
             name="payment_date"
@@ -390,8 +630,11 @@ export function Paybacks() {
             required
             disabled={createLoading}
           />
+
         </form>
+
       </Modal>
+
     </div>
   )
 }

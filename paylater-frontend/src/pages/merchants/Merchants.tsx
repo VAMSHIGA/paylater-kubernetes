@@ -164,36 +164,58 @@ function MerchantProfileView() {
     </div>
   )
 }
-
 function AdminMerchantManagement() {
+
+  // Success message after merchant create/update
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Create merchant modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+
+  // Create merchant loading state
   const [createLoading, setCreateLoading] = useState(false)
+
+  // Create merchant API error
   const [createError, setCreateError] = useState<{
     title: string
     message: string
   } | null>(null)
-  const [createFormData, setCreateFormData] = useState<CreateMerchantRequest>({
-    merchant_name: '',
-    phone_number: '',
-    onboarding: '',
-    commission: '',
-  })
-  const [createFieldErrors, setCreateFieldErrors] = useState<CreateFormErrors>(
-    {},
-  )
 
+  // Create merchant form data
+  const [createFormData, setCreateFormData] =
+    useState<CreateMerchantRequest>({
+      merchant_name: '',
+      phone_number: '',
+      onboarding: '',
+      commission: '',
+    })
+
+  // Create merchant validation errors
+  const [createFieldErrors, setCreateFieldErrors] =
+    useState<CreateFormErrors>({})
+
+
+  // Update merchant loading state
   const [updateLoading, setUpdateLoading] = useState(false)
+
+  // Update merchant API error
   const [updateError, setUpdateError] = useState<{
     title: string
     message: string
   } | null>(null)
-  const [updateMerchantId, setUpdateMerchantId] = useState('')
-  const [updateCommission, setUpdateCommission] = useState('')
-  const [updateFieldErrors, setUpdateFieldErrors] = useState<UpdateFormErrors>(
-    {},
-  )
 
+  // Merchant ID to update
+  const [updateMerchantId, setUpdateMerchantId] = useState('')
+
+  // New commission value
+  const [updateCommission, setUpdateCommission] = useState('')
+
+  // Update merchant validation errors
+  const [updateFieldErrors, setUpdateFieldErrors] =
+    useState<UpdateFormErrors>({})
+
+
+  // Open create merchant modal
   function openCreateModal() {
     setCreateFormData({
       merchant_name: '',
@@ -201,11 +223,14 @@ function AdminMerchantManagement() {
       onboarding: '',
       commission: '',
     })
+
     setCreateFieldErrors({})
     setCreateError(null)
     setIsCreateModalOpen(true)
   }
 
+
+  // Close create merchant modal
   function closeCreateModal() {
     if (createLoading) {
       return
@@ -216,9 +241,12 @@ function AdminMerchantManagement() {
     setCreateFieldErrors({})
   }
 
+
+  // Create merchant form submit
   async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    // Validate merchant name, phone, onboarding date and commission
     const nextErrors: CreateFormErrors = {
       merchant_name: validateRequired(
         createFormData.merchant_name,
@@ -235,6 +263,7 @@ function AdminMerchantManagement() {
     setCreateFieldErrors(nextErrors)
     setCreateError(null)
 
+    // Stop if validation fails
     if (
       nextErrors.merchant_name ||
       nextErrors.phone_number ||
@@ -244,9 +273,12 @@ function AdminMerchantManagement() {
       return
     }
 
+    // Start create loading
     setCreateLoading(true)
 
     try {
+
+      // Create merchant in backend
       const message = await createMerchant({
         merchant_name: createFormData.merchant_name.trim(),
         phone_number: createFormData.phone_number.trim(),
@@ -254,24 +286,38 @@ function AdminMerchantManagement() {
         commission: createFormData.commission.trim(),
       })
 
+      // Show success message
       setSuccessMessage(message || 'Merchant created successfully')
+
+      // Close modal
       setIsCreateModalOpen(false)
+
+      // Clear create form
       setCreateFormData({
         merchant_name: '',
         phone_number: '',
         onboarding: '',
         commission: '',
       })
+
     } catch (error) {
+
+      // Backend failure while creating merchant
       setCreateError(getMerchantErrorMessage(error))
+
     } finally {
+
+      // Stop create loading
       setCreateLoading(false)
     }
   }
 
+
+  // Update merchant commission form submit
   async function handleUpdateSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    // Validate merchant ID and commission
     const nextErrors: UpdateFormErrors = {
       merchant_id: validateMerchantId(updateMerchantId),
       commission: validateCommission(updateCommission),
@@ -280,49 +326,79 @@ function AdminMerchantManagement() {
     setUpdateFieldErrors(nextErrors)
     setUpdateError(null)
 
+    // Stop if validation fails
     if (nextErrors.merchant_id || nextErrors.commission) {
       return
     }
 
+    // Start update loading
     setUpdateLoading(true)
 
     try {
-      const message = await updateMerchantCommission(Number(updateMerchantId), {
-        commission: updateCommission.trim(),
-      })
 
+      // Update merchant commission in backend
+      const message = await updateMerchantCommission(
+        Number(updateMerchantId),
+        {
+          commission: updateCommission.trim(),
+        },
+      )
+
+      // Show success message
       setSuccessMessage(
         message || 'Merchant commission updated successfully',
       )
+
+      // Clear update form
       setUpdateMerchantId('')
       setUpdateCommission('')
+
     } catch (error) {
+
+      // Backend failure while updating commission
       setUpdateError(getMerchantErrorMessage(error))
+
     } finally {
+
+      // Stop update loading
       setUpdateLoading(false)
     }
   }
 
+
   return (
     <div className="space-y-6">
+
+      {/* Merchant management page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <header>
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">
             Merchants
           </p>
+
           <h1 className="mt-1 text-2xl font-semibold text-text sm:text-3xl">
             Merchant Management
           </h1>
+
           <p className="mt-2 text-sm text-text-muted">
             Onboard merchants and manage commission settings.
           </p>
         </header>
 
-        <Button type="button" onClick={openCreateModal}>
+
+        {/* Open Create Merchant modal */}
+        <Button
+          type="button"
+          onClick={openCreateModal}
+        >
           Create Merchant
         </Button>
+
       </div>
 
+
+      {/* Success message */}
       {successMessage ? (
         <Alert
           variant="success"
@@ -333,12 +409,17 @@ function AdminMerchantManagement() {
         />
       ) : null}
 
+
+      {/* Update merchant commission section */}
       <Card title="Update Merchant Commission" padding="md">
+
         <form
           className="flex flex-col gap-4"
           onSubmit={handleUpdateSubmit}
           noValidate
         >
+
+          {/* Update merchant API error */}
           {updateError ? (
             <Alert
               variant="error"
@@ -347,40 +428,62 @@ function AdminMerchantManagement() {
             />
           ) : null}
 
+
           <div className="grid gap-4 sm:grid-cols-2">
+
+            {/* Merchant ID input */}
             <Input
               label="Merchant ID"
               name="merchant_id"
               inputMode="numeric"
               value={updateMerchantId}
-              onChange={(event) => setUpdateMerchantId(event.target.value)}
+              onChange={(event) =>
+                setUpdateMerchantId(event.target.value)
+              }
               error={updateFieldErrors.merchant_id}
               fullWidth
               required
               disabled={updateLoading}
             />
 
+
+            {/* Commission input */}
             <Input
               label="Commission"
               name="commission"
               inputMode="decimal"
               value={updateCommission}
-              onChange={(event) => setUpdateCommission(event.target.value)}
+              onChange={(event) =>
+                setUpdateCommission(event.target.value)
+              }
               error={updateFieldErrors.commission}
               fullWidth
               required
               disabled={updateLoading}
             />
+
           </div>
 
+
+          {/* Update commission button */}
           <div>
-            <Button type="submit" loading={updateLoading} disabled={updateLoading}>
-              {updateLoading ? 'Updating...' : 'Update Commission'}
+            <Button
+              type="submit"
+              loading={updateLoading}
+              disabled={updateLoading}
+            >
+              {updateLoading
+                ? 'Updating...'
+                : 'Update Commission'}
             </Button>
           </div>
+
         </form>
+
       </Card>
 
+
+      {/* Create Merchant modal */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={closeCreateModal}
@@ -388,6 +491,8 @@ function AdminMerchantManagement() {
         size="md"
         footer={
           <div className="flex justify-end gap-3">
+
+            {/* Cancel button */}
             <Button
               type="button"
               variant="outline"
@@ -396,23 +501,33 @@ function AdminMerchantManagement() {
             >
               Cancel
             </Button>
+
+
+            {/* Create merchant button */}
             <Button
               type="submit"
               form="create-merchant-form"
               loading={createLoading}
               disabled={createLoading}
             >
-              {createLoading ? 'Creating...' : 'Create Merchant'}
+              {createLoading
+                ? 'Creating...'
+                : 'Create Merchant'}
             </Button>
+
           </div>
         }
       >
+
+        {/* Create Merchant form */}
         <form
           id="create-merchant-form"
           className="flex flex-col gap-4"
           onSubmit={handleCreateSubmit}
           noValidate
         >
+
+          {/* Create merchant API error */}
           {createError ? (
             <Alert
               variant="error"
@@ -421,6 +536,8 @@ function AdminMerchantManagement() {
             />
           ) : null}
 
+
+          {/* Merchant Name input */}
           <Input
             label="Merchant Name"
             name="merchant_name"
@@ -437,6 +554,8 @@ function AdminMerchantManagement() {
             disabled={createLoading}
           />
 
+
+          {/* Phone Number input */}
           <Input
             label="Phone Number"
             name="phone_number"
@@ -454,6 +573,8 @@ function AdminMerchantManagement() {
             disabled={createLoading}
           />
 
+
+          {/* Onboarding Date input */}
           <Input
             label="Onboarding Date"
             name="onboarding"
@@ -471,6 +592,8 @@ function AdminMerchantManagement() {
             disabled={createLoading}
           />
 
+
+          {/* Commission input */}
           <Input
             label="Commission"
             name="commission"
@@ -487,16 +610,24 @@ function AdminMerchantManagement() {
             required
             disabled={createLoading}
           />
+
         </form>
+
       </Modal>
+
     </div>
   )
 }
 
+
+// Check user role and show the correct merchant page
 export function Merchants() {
   const { user } = useAuth()
+
+  // Check whether logged-in user is an admin
   const isAdmin = user?.role === 'admin'
 
+  // Admin gets merchant management; merchant gets their profile
   if (!isAdmin) {
     return <MerchantProfileView />
   }

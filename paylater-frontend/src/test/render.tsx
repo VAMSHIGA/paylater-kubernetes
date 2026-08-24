@@ -71,3 +71,6 @@ export function AuthWrapper({
     <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>
   )
 }
+
+
+// render.tsx is specifically used to make your test cases easier to write.

@@ -102,30 +102,38 @@ export function AdminDashboard() {
     }
   }, [])
 
-  useEffect(() => {
-    async function initialLoad() {
-      setLoading(true)
-
-      try {
-        await loadDashboard()
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void initialLoad()
-  }, [loadDashboard])
-
-  async function handleRefresh() {
-    setRefreshing(true)
+// Load dashboard data from the backend when the page opens
+useEffect(() => {
+  async function initialLoad() {
+    // Show loading state
+    setLoading(true)
 
     try {
+      // Get dashboard data from the backend
       await loadDashboard()
     } finally {
-      setRefreshing(false)
+      // Stop loading after API request finishes
+      setLoading(false)
     }
   }
 
+  void initialLoad()
+}, [loadDashboard])
+
+
+// Refresh button: load the latest dashboard data again
+async function handleRefresh() {
+  // Show refreshing state
+  setRefreshing(true)
+
+  try {
+    // Get updated data from the backend
+    await loadDashboard()
+  } finally {
+    // Stop refreshing after API request finishes
+    setRefreshing(false)
+  }
+}
   return (
     <div className="animate-fade-in space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

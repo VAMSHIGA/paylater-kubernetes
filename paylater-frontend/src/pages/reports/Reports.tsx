@@ -18,6 +18,8 @@ import type {
 } from '../../types'
 import { formatMoney } from '../../utils/format'
 
+
+// Merchant fees table columns
 const merchantFeeColumns: TableColumn<MerchantFee>[] = [
   {
     key: 'MerchantName',
@@ -30,6 +32,8 @@ const merchantFeeColumns: TableColumn<MerchantFee>[] = [
   },
 ]
 
+
+// Customer dues table columns
 const customerDueColumns: TableColumn<CustomerDue>[] = [
   {
     key: 'customer_id',
@@ -56,6 +60,8 @@ const customerDueColumns: TableColumn<CustomerDue>[] = [
   },
 ]
 
+
+// Customers at credit limit table columns
 const creditLimitColumns: TableColumn<CreditLimitCustomer>[] = [
   {
     key: 'customer_id',
@@ -77,27 +83,40 @@ const creditLimitColumns: TableColumn<CreditLimitCustomer>[] = [
   },
 ]
 
+
 export function Reports() {
+
+  // Merchant fees data, loading and error states
   const [merchantFees, setMerchantFees] = useState<MerchantFee[]>([])
   const [merchantFeesLoading, setMerchantFeesLoading] = useState(true)
   const [merchantFeesError, setMerchantFeesError] = useState<string | null>(null)
 
+
+  // Customer dues data, loading and error states
   const [customerDues, setCustomerDues] = useState<CustomerDue[]>([])
   const [customerDuesLoading, setCustomerDuesLoading] = useState(true)
   const [customerDuesError, setCustomerDuesError] = useState<string | null>(null)
 
+
+  // Credit limit customer data, loading and error states
   const [creditLimitCustomers, setCreditLimitCustomers] = useState<
     CreditLimitCustomer[]
   >([])
   const [creditLimitLoading, setCreditLimitLoading] = useState(true)
   const [creditLimitError, setCreditLimitError] = useState<string | null>(null)
 
+
+  // Total dues data, loading and error states
   const [totalDues, setTotalDues] = useState<string | null>(null)
   const [totalDuesLoading, setTotalDuesLoading] = useState(true)
   const [totalDuesError, setTotalDuesError] = useState<string | null>(null)
 
+
+  // Refresh button loading state
   const [refreshing, setRefreshing] = useState(false)
 
+
+  // Load merchant fees from backend
   const loadMerchantFees = useCallback(async () => {
     setMerchantFeesLoading(true)
     setMerchantFeesError(null)
@@ -106,6 +125,7 @@ export function Reports() {
       const data = await getMerchantFees()
       setMerchantFees(data)
     } catch (error) {
+      // Backend failure → clear data and show error
       setMerchantFees([])
       setMerchantFeesError(getReportErrorMessage(error).message)
     } finally {
@@ -113,6 +133,8 @@ export function Reports() {
     }
   }, [])
 
+
+  // Load customer dues from backend
   const loadCustomerDues = useCallback(async () => {
     setCustomerDuesLoading(true)
     setCustomerDuesError(null)
@@ -121,6 +143,7 @@ export function Reports() {
       const data = await getCustomerDues()
       setCustomerDues(data)
     } catch (error) {
+      // Backend failure → clear data and show error
       setCustomerDues([])
       setCustomerDuesError(getReportErrorMessage(error).message)
     } finally {
@@ -128,6 +151,8 @@ export function Reports() {
     }
   }, [])
 
+
+  // Load customers who reached their credit limit
   const loadCreditLimit = useCallback(async () => {
     setCreditLimitLoading(true)
     setCreditLimitError(null)
@@ -136,6 +161,7 @@ export function Reports() {
       const data = await getCreditLimit()
       setCreditLimitCustomers(data)
     } catch (error) {
+      // Backend failure → clear data and show error
       setCreditLimitCustomers([])
       setCreditLimitError(getReportErrorMessage(error).message)
     } finally {
@@ -143,6 +169,8 @@ export function Reports() {
     }
   }, [])
 
+
+  // Load total dues from backend
   const loadTotalDues = useCallback(async () => {
     setTotalDuesLoading(true)
     setTotalDuesError(null)
@@ -151,6 +179,7 @@ export function Reports() {
       const data = await getTotalDues()
       setTotalDues(data.total_dues)
     } catch (error) {
+      // Backend failure → clear value and show error
       setTotalDues(null)
       setTotalDuesError(getReportErrorMessage(error).message)
     } finally {
@@ -158,6 +187,8 @@ export function Reports() {
     }
   }, [])
 
+
+  // Main function: load all four report sections
   const loadAllReports = useCallback(async () => {
     await Promise.all([
       loadMerchantFees(),
@@ -167,10 +198,14 @@ export function Reports() {
     ])
   }, [loadCreditLimit, loadCustomerDues, loadMerchantFees, loadTotalDues])
 
+
+  // Load all report data when the page opens
   useEffect(() => {
     void loadAllReports()
   }, [loadAllReports])
 
+
+  // Refresh button: load all report data again
   async function handleRefresh() {
     setRefreshing(true)
 
@@ -181,21 +216,28 @@ export function Reports() {
     }
   }
 
+
   return (
     <div className="space-y-6">
+
+      {/* Reports page header and refresh button */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <header>
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">
             Reports
           </p>
+
           <h1 className="mt-1 text-2xl font-semibold text-text sm:text-3xl">
             Reports
           </h1>
+
           <p className="mt-2 text-sm text-text-muted">
             Admin reporting data from the PayLater reporting service.
           </p>
         </header>
 
+
+        {/* Refresh all reports */}
         <Button
           type="button"
           variant="outline"
@@ -207,20 +249,38 @@ export function Reports() {
         </Button>
       </div>
 
+
+      {/* Total dues section */}
       <Card title="Total Dues" padding="md">
+
+        {/* Show error if total dues API fails */}
         {totalDuesError ? (
-          <Alert variant="error" title="Failed to load" message={totalDuesError} />
+          <Alert
+            variant="error"
+            title="Failed to load"
+            message={totalDuesError}
+          />
         ) : null}
 
+
+        {/* Show loading while getting total dues */}
         {totalDuesLoading ? (
-          <p className="text-sm text-text-muted">Loading total dues...</p>
+          <p className="text-sm text-text-muted">
+            Loading total dues...
+          </p>
+
         ) : totalDuesError ? null : (
+
+          // Show total dues after successful API response
           <p className="text-2xl font-semibold text-text">
             {formatMoney(totalDues)}
           </p>
         )}
+
       </Card>
 
+
+      {/* Merchant fees section */}
       <Card title="Merchant Fees" padding="md">
         <Table
           columns={merchantFeeColumns}
@@ -232,6 +292,8 @@ export function Reports() {
         />
       </Card>
 
+
+      {/* Customer dues section */}
       <Card title="Customer Dues" padding="md">
         <Table
           columns={customerDueColumns}
@@ -243,6 +305,8 @@ export function Reports() {
         />
       </Card>
 
+
+      {/* Customers who reached their credit limit */}
       <Card title="Customers at Credit Limit" padding="md">
         <Table
           columns={creditLimitColumns}
@@ -253,6 +317,7 @@ export function Reports() {
           rowKey="customer_id"
         />
       </Card>
+
     </div>
   )
 }

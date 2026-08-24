@@ -52,3 +52,5 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Protected Content')).toBeInTheDocument()
   })
 })
+
+// ProtectedRoute = "Are you logged in? If yes, enter the application. If no, go to Login."

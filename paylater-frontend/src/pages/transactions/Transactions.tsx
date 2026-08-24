@@ -15,6 +15,8 @@ import {
 import type { Transaction } from '../../types'
 import { formatMoney } from '../../utils/format'
 
+
+// Form fields used when creating a transaction
 interface FormState {
   customer_id: string
   merchant_id: string
@@ -23,6 +25,8 @@ interface FormState {
   transaction_date: string
 }
 
+
+// Validation errors for each form field
 interface FormErrors {
   customer_id?: string
   merchant_id?: string
@@ -31,8 +35,12 @@ interface FormErrors {
   transaction_date?: string
 }
 
+
+// Transaction date must be YYYY-MM-DD
 const datePattern = /^\d{4}-\d{2}-\d{2}$/
 
+
+// Empty form when creating a new transaction
 const initialFormData: FormState = {
   customer_id: '',
   merchant_id: '',
@@ -41,7 +49,12 @@ const initialFormData: FormState = {
   transaction_date: '',
 }
 
-function validateRequired(value: string, label: string): string | undefined {
+
+// Check whether a required field is empty
+function validateRequired(
+  value: string,
+  label: string,
+): string | undefined {
   if (!value.trim()) {
     return `${label} is required`
   }
@@ -49,6 +62,9 @@ function validateRequired(value: string, label: string): string | undefined {
   return undefined
 }
 
+
+// Validate IDs such as Customer ID and Merchant ID
+// ID must be a positive integer
 function validatePositiveInteger(
   value: string,
   label: string,
@@ -68,6 +84,9 @@ function validatePositiveInteger(
   return undefined
 }
 
+
+// Validate transaction amount
+// Amount must be greater than 0
 function validateAmount(amount: string): string | undefined {
   const required = validateRequired(amount, 'Amount')
 
@@ -84,6 +103,9 @@ function validateAmount(amount: string): string | undefined {
   return undefined
 }
 
+
+// Validate commission
+// Commission must be 0 or greater
 function validateCommission(commission: string): string | undefined {
   const required = validateRequired(commission, 'Commission')
 
@@ -100,8 +122,16 @@ function validateCommission(commission: string): string | undefined {
   return undefined
 }
 
-function validateTransactionDate(transactionDate: string): string | undefined {
-  const required = validateRequired(transactionDate, 'Transaction date')
+
+// Validate transaction date
+// Date must be YYYY-MM-DD
+function validateTransactionDate(
+  transactionDate: string,
+): string | undefined {
+  const required = validateRequired(
+    transactionDate,
+    'Transaction date',
+  )
 
   if (required) {
     return required
@@ -114,47 +144,95 @@ function validateTransactionDate(transactionDate: string): string | undefined {
   return undefined
 }
 
+
 export function Transactions() {
+
+  // Get logged-in user information
   const { user } = useAuth()
+
+  // Check whether the logged-in user is a customer
   const isCustomer = user?.role === 'customer'
+
+
+  // Get customer profile
+  // Customer ID can come automatically from this profile
   const {
     profile,
     loading: profileLoading,
     error: profileError,
     refresh: refreshProfile,
   } = useCustomerProfile()
+
+
+  // Transaction list data and loading/error states
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+
+  // Success message after creating a transaction
+  const [successMessage, setSuccessMessage] =
+    useState<string | null>(null)
+
+
+  // Create transaction modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+
+  // Create transaction loading state
   const [createLoading, setCreateLoading] = useState(false)
+
+
+  // Create transaction API error
   const [createError, setCreateError] = useState<{
     title: string
     message: string
   } | null>(null)
-  const [formData, setFormData] = useState(initialFormData)
-  const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
 
+
+  // Form values
+  const [formData, setFormData] =
+    useState(initialFormData)
+
+
+  // Form validation errors
+  const [fieldErrors, setFieldErrors] =
+    useState<FormErrors>({})
+
+
+  // Load transaction history from backend
   const loadTransactions = useCallback(async () => {
     setListLoading(true)
     setListError(null)
 
     try {
+      // Call backend API
       const data = await listTransactions()
+
+      // Store transactions in state
       setTransactions(data)
     } catch (error) {
+
+      // Backend failed → clear transactions and show error
       setTransactions([])
-      setListError(getTransactionErrorMessage(error).message)
+      setListError(
+        getTransactionErrorMessage(error).message,
+      )
     } finally {
+
+      // Loading finished
       setListLoading(false)
     }
   }, [])
 
+
+  // Load transaction history when page opens
   useEffect(() => {
     void loadTransactions()
   }, [loadTransactions])
 
+
+  // Automatically set Customer ID for customer users
   useEffect(() => {
     if (isCustomer && profile?.ID) {
       setFormData((current) => ({
@@ -164,6 +242,9 @@ export function Transactions() {
     }
   }, [isCustomer, profile?.ID])
 
+
+  // Create table columns
+  // Customer ID column is hidden for customer users
   const columns = useMemo<Array<TableColumn<Transaction>>>(() => {
     const baseColumns: Array<TableColumn<Transaction>> = [
       {
@@ -172,12 +253,15 @@ export function Transactions() {
       },
     ]
 
+
+    // Admin/merchant can see Customer ID
     if (!isCustomer) {
       baseColumns.push({
         key: 'CustomerID',
         header: 'Customer ID',
       })
     }
+
 
     baseColumns.push(
       {
@@ -200,15 +284,21 @@ export function Transactions() {
       },
     )
 
+
     return baseColumns
   }, [isCustomer])
 
+
+  // Open Create Transaction modal
   function openCreateModal() {
     const nextForm = { ...initialFormData }
 
+
+    // For customer, automatically use their profile ID
     if (isCustomer && profile?.ID) {
       nextForm.customer_id = String(profile.ID)
     }
+
 
     setFormData(nextForm)
     setFieldErrors({})
@@ -216,40 +306,75 @@ export function Transactions() {
     setIsModalOpen(true)
   }
 
+
+  // Close Create Transaction modal
   function closeCreateModal() {
+
+    // Do not close while transaction is being created
     if (createLoading) {
       return
     }
+
 
     setIsModalOpen(false)
     setCreateError(null)
     setFieldErrors({})
   }
 
-  async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+
+  // Submit Create Transaction form
+  async function handleCreateSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
 
+
+    // Get Customer ID
+    // Customer users get it from their profile
+    // Admin/merchant users enter it manually
     const customerId = isCustomer
       ? profile?.ID
         ? String(profile.ID)
         : ''
       : formData.customer_id
 
+
+    // Validate all form fields
     const nextErrors: FormErrors = {
       customer_id: isCustomer
         ? profile?.ID
           ? undefined
           : 'Your PayLater profile is not available yet'
-        : validatePositiveInteger(customerId, 'Customer ID'),
-      merchant_id: validatePositiveInteger(formData.merchant_id, 'Merchant ID'),
+        : validatePositiveInteger(
+            customerId,
+            'Customer ID',
+          ),
+
+      merchant_id: validatePositiveInteger(
+        formData.merchant_id,
+        'Merchant ID',
+      ),
+
       amount: validateAmount(formData.amount),
-      commission: validateCommission(formData.commission),
-      transaction_date: validateTransactionDate(formData.transaction_date),
+
+      commission: validateCommission(
+        formData.commission,
+      ),
+
+      transaction_date: validateTransactionDate(
+        formData.transaction_date,
+      ),
     }
 
+
+    // Save validation errors
     setFieldErrors(nextErrors)
+
+    // Clear previous API error
     setCreateError(null)
 
+
+    // If validation fails, stop here
     if (
       nextErrors.customer_id ||
       nextErrors.merchant_id ||
@@ -260,55 +385,98 @@ export function Transactions() {
       return
     }
 
+
+    // Start creating transaction
     setCreateLoading(true)
 
+
     try {
+
+      // Send transaction data to backend
       const message = await createTransaction({
         customer_id: Number(customerId),
         merchant_id: Number(formData.merchant_id),
         amount: formData.amount.trim(),
         commission: formData.commission.trim(),
-        transaction_date: formData.transaction_date.trim(),
+        transaction_date:
+          formData.transaction_date.trim(),
       })
 
-      setSuccessMessage(message || 'Transaction created successfully')
+
+      // Show success message
+      setSuccessMessage(
+        message || 'Transaction created successfully',
+      )
+
+
+      // Close modal
       setIsModalOpen(false)
+
+
+      // Clear form
       setFormData(initialFormData)
+
+
+      // Reload transaction history
       await loadTransactions()
+
+
+      // If customer, refresh customer profile also
       if (isCustomer) {
         await refreshProfile()
       }
+
     } catch (error) {
-      setCreateError(getTransactionErrorMessage(error))
+
+      // Backend failure → show error message
+      setCreateError(
+        getTransactionErrorMessage(error),
+      )
+
     } finally {
+
+      // Stop creating/loading state
       setCreateLoading(false)
     }
   }
 
+
   return (
     <div className="space-y-6">
+
+      {/* Page header and Create Transaction button */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <header>
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">
             Transactions
           </p>
+
           <h1 className="mt-1 text-2xl font-semibold text-text sm:text-3xl">
             Transaction Management
           </h1>
+
           <p className="mt-2 text-sm text-text-muted">
             Record PayLater purchases and view your transaction history.
           </p>
         </header>
 
+
+        {/* Customer cannot create until profile is loaded */}
         <Button
           type="button"
           onClick={openCreateModal}
-          disabled={isCustomer && (profileLoading || !profile?.ID)}
+          disabled={
+            isCustomer &&
+            (profileLoading || !profile?.ID)
+          }
         >
           Create Transaction
         </Button>
       </div>
 
+
+      {/* Show successful transaction message */}
       {successMessage ? (
         <Alert
           variant="success"
@@ -319,6 +487,8 @@ export function Transactions() {
         />
       ) : null}
 
+
+      {/* Show customer profile error */}
       {isCustomer && profileError ? (
         <Alert
           variant="error"
@@ -327,8 +497,14 @@ export function Transactions() {
         />
       ) : null}
 
+
+      {/* Transaction history table */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-text">Transaction History</h2>
+
+        <h2 className="text-lg font-semibold text-text">
+          Transaction History
+        </h2>
+
         <Table
           columns={columns}
           data={transactions}
@@ -337,15 +513,21 @@ export function Transactions() {
           emptyMessage="No transactions recorded yet."
           rowKey="ID"
         />
+
       </section>
 
+
+      {/* Create Transaction modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={closeCreateModal}
         title="Create Transaction"
         size="md"
         footer={
+
           <div className="flex justify-end gap-3">
+
+            {/* Cancel button */}
             <Button
               type="button"
               variant="outline"
@@ -354,23 +536,32 @@ export function Transactions() {
             >
               Cancel
             </Button>
+
+
+            {/* Submit transaction button */}
             <Button
               type="submit"
               form="create-transaction-form"
               loading={createLoading}
               disabled={createLoading}
             >
-              {createLoading ? 'Creating...' : 'Create Transaction'}
+              {createLoading
+                ? 'Creating...'
+                : 'Create Transaction'}
             </Button>
+
           </div>
         }
       >
+
         <form
           id="create-transaction-form"
           className="flex flex-col gap-4"
           onSubmit={handleCreateSubmit}
           noValidate
         >
+
+          {/* Backend error while creating transaction */}
           {createError ? (
             <Alert
               variant="error"
@@ -379,7 +570,11 @@ export function Transactions() {
             />
           ) : null}
 
+
+          {/* Customer ID and Merchant ID */}
           <div className="grid gap-4 sm:grid-cols-2">
+
+            {/* Customer ID is entered manually for admin/merchant */}
             {!isCustomer ? (
               <Input
                 label="Customer ID"
@@ -389,7 +584,8 @@ export function Transactions() {
                 onChange={(event) =>
                   setFormData((current) => ({
                     ...current,
-                    customer_id: event.target.value,
+                    customer_id:
+                      event.target.value,
                   }))
                 }
                 error={fieldErrors.customer_id}
@@ -399,6 +595,8 @@ export function Transactions() {
               />
             ) : null}
 
+
+            {/* Merchant ID */}
             <Input
               label="Merchant ID"
               name="merchant_id"
@@ -407,7 +605,8 @@ export function Transactions() {
               onChange={(event) =>
                 setFormData((current) => ({
                   ...current,
-                  merchant_id: event.target.value,
+                  merchant_id:
+                    event.target.value,
                 }))
               }
               error={fieldErrors.merchant_id}
@@ -415,9 +614,14 @@ export function Transactions() {
               required
               disabled={createLoading}
             />
+
           </div>
 
+
+          {/* Amount and Commission */}
           <div className="grid gap-4 sm:grid-cols-2">
+
+            {/* Transaction amount */}
             <Input
               label="Amount"
               name="amount"
@@ -435,6 +639,8 @@ export function Transactions() {
               disabled={createLoading}
             />
 
+
+            {/* Commission */}
             <Input
               label="Commission"
               name="commission"
@@ -443,7 +649,8 @@ export function Transactions() {
               onChange={(event) =>
                 setFormData((current) => ({
                   ...current,
-                  commission: event.target.value,
+                  commission:
+                    event.target.value,
                 }))
               }
               error={fieldErrors.commission}
@@ -451,8 +658,11 @@ export function Transactions() {
               required
               disabled={createLoading}
             />
+
           </div>
 
+
+          {/* Transaction date */}
           <Input
             label="Transaction Date"
             name="transaction_date"
@@ -461,7 +671,8 @@ export function Transactions() {
             onChange={(event) =>
               setFormData((current) => ({
                 ...current,
-                transaction_date: event.target.value,
+                transaction_date:
+                  event.target.value,
               }))
             }
             error={fieldErrors.transaction_date}
@@ -469,8 +680,10 @@ export function Transactions() {
             required
             disabled={createLoading}
           />
+
         </form>
       </Modal>
+
     </div>
   )
 }

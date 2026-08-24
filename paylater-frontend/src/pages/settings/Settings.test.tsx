@@ -6,6 +6,8 @@ import { createMockAuthValue, renderWithAuthContext } from '../../test/render'
 import { Settings } from './Settings'
 
 describe('Settings', () => {
+
+  // Test Case 1: Display authenticated user account details
   it('displays authenticated account details', () => {
     renderWithAuthContext(
       <Settings />,
@@ -26,6 +28,8 @@ describe('Settings', () => {
     expect(screen.getByText('Authenticated')).toBeInTheDocument()
   })
 
+
+  // Test Case 2: Check logout button calls logout function
   it('calls logout when logout button is clicked', async () => {
     const user = userEvent.setup()
     const logout = vi.fn()
@@ -44,7 +48,9 @@ describe('Settings', () => {
       }),
     )
 
-    await user.click(screen.getByRole('button', { name: 'Logout' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Logout' }),
+    )
 
     expect(logout).toHaveBeenCalledOnce()
   })

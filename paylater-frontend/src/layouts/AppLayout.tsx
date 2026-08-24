@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth'
 
 /**
  * Root application layout shell with sidebar and top navigation.
+ * Outlet to display different pages inside that structure.
  */
 export function AppLayout() {
   const { user, logout } = useAuth()

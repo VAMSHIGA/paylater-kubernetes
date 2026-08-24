@@ -20,3 +20,9 @@ export function GuestRoute() {
 
   return <Outlet />
 }
+
+
+// // GuestRoute = controls Login/Register pages.
+
+// 🔴 Already logged in → don't show Login/Register → go to dashboard
+// // 🟢 Not logged in → allow Login/Register

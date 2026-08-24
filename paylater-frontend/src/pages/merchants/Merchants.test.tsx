@@ -47,6 +47,7 @@ describe('Merchants', () => {
     })
   })
 
+  // Test Case 1: Admin sees update commission form
   it('shows update commission form for admin', () => {
     renderMerchants('admin')
 
@@ -59,6 +60,7 @@ describe('Merchants', () => {
     ).not.toBeInTheDocument()
   })
 
+  // Test Case 2: Merchant user sees merchant profile
   it('shows merchant profile for merchant users', async () => {
     renderMerchants('merchant')
 
@@ -81,6 +83,7 @@ describe('Merchants', () => {
     expect(screen.getByText('5.00%')).toBeInTheDocument()
   })
 
+  // Test Case 3: Admin creates a merchant successfully
   it('creates a merchant successfully', async () => {
     const user = userEvent.setup()
     renderMerchants('admin')
@@ -96,6 +99,7 @@ describe('Merchants', () => {
     expect(await screen.findByText('Merchant created successfully')).toBeInTheDocument()
   })
 
+  // Test Case 4: Admin updates merchant commission
   it('updates merchant commission for admin', async () => {
     const user = userEvent.setup()
     renderMerchants('admin')

@@ -19,3 +19,6 @@ export function ProtectedRoute() {
 
   return <Outlet />
 }
+
+
+// ProtectedRoute checks login status. Logged in → allow access. Not logged in → send to Login.

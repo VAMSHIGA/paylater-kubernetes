@@ -51,6 +51,7 @@ describe('Paybacks page', () => {
     })
   })
 
+  // Test Case 1: Display Payback UI for customer
   it('renders create payback UI', () => {
     mockedUseCustomerProfile.mockReturnValue({
       profile: {
@@ -69,30 +70,64 @@ describe('Paybacks page', () => {
     expect(
       screen.getByRole('heading', { name: 'Payback Management' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create Payback' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Payback History' })).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', { name: 'Create Payback' }),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('heading', { name: 'Payback History' }),
+    ).toBeInTheDocument()
   })
 
+  // Test Case 2: Validate required fields  "Customer ID is required" ❌
   it('validates required fields', async () => {
     const user = userEvent.setup()
     renderPaybacks('admin')
 
-    await user.click(screen.getAllByRole('button', { name: 'Create Payback' })[0]!)
-    await user.click(screen.getAllByRole('button', { name: 'Create Payback' })[1]!)
+    await user.click(
+      screen.getAllByRole('button', { name: 'Create Payback' })[0]!,
+    )
 
-    expect(await screen.findByText('Customer ID is required')).toBeInTheDocument()
+    await user.click(
+      screen.getAllByRole('button', { name: 'Create Payback' })[1]!,
+    )
+
+    expect(
+      await screen.findByText('Customer ID is required'),
+    ).toBeInTheDocument()
   })
 
+  // Test Case 3: Create payback successfully
   it('creates a payback successfully', async () => {
     const user = userEvent.setup()
     renderPaybacks('admin')
 
-    await user.click(screen.getAllByRole('button', { name: 'Create Payback' })[0]!)
-    await user.type(screen.getByRole('textbox', { name: /^Customer ID/ }), '1')
-    await user.type(screen.getByRole('textbox', { name: /^Amount/ }), '50')
-    await user.type(screen.getByLabelText(/^Payment Date/), '2026-08-10')
-    await user.click(screen.getAllByRole('button', { name: 'Create Payback' })[1]!)
+    await user.click(
+      screen.getAllByRole('button', { name: 'Create Payback' })[0]!,
+    )
 
-    expect(await screen.findByText('Payback created successfully')).toBeInTheDocument()
+    await user.type(
+      screen.getByRole('textbox', { name: /^Customer ID/ }),
+      '1',
+    )
+
+    await user.type(
+      screen.getByRole('textbox', { name: /^Amount/ }),
+      '50',
+    )
+
+    await user.type(
+      screen.getByLabelText(/^Payment Date/),
+      '2026-08-10',
+    )
+
+    await user.click(
+      screen.getAllByRole('button', { name: 'Create Payback' })[1]!,
+    )
+
+    expect(
+      await screen.findByText('Payback created successfully'),
+    ).toBeInTheDocument()
   })
 })

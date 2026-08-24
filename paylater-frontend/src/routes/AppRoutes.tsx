@@ -20,7 +20,8 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { RoleGuard } from './RoleGuard'
 
 /**
- * Application route definitions.
+ * Application route definitions. AppRoutes.tsx 
+ * connects URLs to React pages and controls authentication, role-based access, layouts, and the 404 page.
  */
 export function AppRoutes() {
   return (
