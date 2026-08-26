@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: paylater-reporting-service
+  namespace: paylater-dev
+
+spec:
+  selector:
+    app: paylater-reporting-service
+
+  ports:
+    - port: 8086
+      targetPort: 8086

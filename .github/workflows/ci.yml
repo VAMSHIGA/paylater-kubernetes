@@ -137,3 +137,17 @@ jobs:
 
       - name: Validate OpenAPI specification
         run: npx --yes @redocly/cli@1.34.5 lint docs/openapi.yaml --extends minimal
+
+  helm-kubernetes:
+    name: Helm Kubernetes validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Lint Helm chart
+        run: helm lint paylater-chart/
+
+      - name: Render Helm templates
+        run: helm template paylater paylater-chart/ -n paylater-dev > /dev/null

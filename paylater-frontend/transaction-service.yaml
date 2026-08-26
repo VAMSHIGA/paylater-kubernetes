@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: paylater-transaction-service
+  namespace: paylater-dev
+
+spec:
+  selector:
+    app: paylater-transaction-service
+
+  ports:
+    - port: 8084
+      targetPort: 8084

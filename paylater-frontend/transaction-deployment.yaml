@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: paylater-transaction-service
+  namespace: paylater-dev
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: paylater-transaction-service
+
+  template:
+    metadata:
+      labels:
+        app: paylater-transaction-service
+
+    spec:
+      containers:
+        - name: paylater-transaction-service
+          image: paylater-transaction-service:latest
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 8084
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          readinessProbe:
+            tcpSocket:
+              port: 8084
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            tcpSocket:
+              port: 8084
+            initialDelaySeconds: 10
+            periodSeconds: 20
+
+          env:
+            - name: DB_USER
+              value: "root"
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: identity-secret
+                  key: JWT_SECRET
+
+          envFrom:
+            - configMapRef:
+                name: transaction-config

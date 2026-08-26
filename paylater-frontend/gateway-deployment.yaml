@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: paylater-api-gateway
+  namespace: paylater-dev
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: paylater-api-gateway
+
+  template:
+    metadata:
+      labels:
+        app: paylater-api-gateway
+
+    spec:
+      containers:
+        - name: paylater-api-gateway
+          image: paylater-api-gateway:v3
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 8080
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+
+          env:
+            - name: IDENTITY_SERVICE_URL
+              value: "http://paylater-identity-service:8081"
+
+            - name: CUSTOMER_SERVICE_URL
+              value: "http://paylater-customer-service:8082"
+
+            - name: MERCHANT_SERVICE_URL
+              value: "http://paylater-merchant-service:8083"
+
+            - name: TRANSACTION_SERVICE_URL
+              value: "http://paylater-transaction-service:8084"
+
+            - name: PAYBACK_SERVICE_URL
+              value: "http://paylater-payback-service:8085"
+
+            - name: REPORTING_SERVICE_URL
+              value: "http://paylater-reporting-service:8086"

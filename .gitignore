@@ -22,3 +22,12 @@
 # Temporary test artifacts
 *.test
 *.out
+# Secrets / credentials
+.env
+*.key
+
+# Local TLS certificates
+*.crt
+
+# Kubernetes local secrets
+**/*secret.yaml

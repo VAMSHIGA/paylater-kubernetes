@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: payback-config
+  namespace: paylater-dev
+
+data:
+  HTTP_PORT: "8085"
+  DB_HOST: "mysql-service"
+  DB_PORT: "3306"
+  DB_NAME: "payback_db"

@@ -1,4 +1,3 @@
-// Command paylater is the strangler-pattern API gateway for PayLater.
 package main
 
 import (
@@ -22,7 +21,7 @@ func main() {
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
+			"status": "ok-v3",
 		})
 	})
 

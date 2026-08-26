@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: paylater-merchant-service
+  namespace: paylater-dev
+
+spec:
+  selector:
+    app: paylater-merchant-service
+
+  ports:
+    - port: 8083
+      targetPort: 8083

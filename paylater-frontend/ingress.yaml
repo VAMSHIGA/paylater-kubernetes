@@ -1,0 +1,76 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: paylater-ingress
+  namespace: paylater-dev
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+    - http:
+        paths:
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: paylater-api-gateway-service
+                port:
+                  number: 8080
+
+          - path: /customers
+            pathType: Prefix
+            backend:
+              service:
+                name: paylater-api-gateway-service
+                port:
+                  number: 8080
+
+          - path: /merchants
+            pathType: Prefix
+            backend:
+              service:
+                name: paylater-api-gateway-service
+                port:
+                  number: 8080
+
+          - path: /transactions
+            pathType: Prefix
+            backend:
+              service:
+                name: paylater-api-gateway-service
+                port:
+                  number: 8080
+
+          - path: /paybacks
+            pathType: Prefix
+            backend:
+              service:
+                name: paylater-api-gateway-service
+                port:
+                  number: 8080
+
+          - path: /reports
+            pathType: Prefix
+            backend:
+              service:
+                name: paylater-api-gateway-service
+                port:
+                  number: 8080
+
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: paylater-api-gateway-service
+                port:
+                  number: 8080
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paylater-frontend-service
+                port:
+                  number: 80

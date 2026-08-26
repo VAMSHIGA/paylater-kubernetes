@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: gateway-config
+  namespace: paylater-dev
+
+data:
+  IDENTITY_SERVICE_URL: "http://paylater-identity-service:8081"
+  CUSTOMER_SERVICE_URL: "http://paylater-customer-service:8082"
+  MERCHANT_SERVICE_URL: "http://paylater-merchant-service:8083"
+  TRANSACTION_SERVICE_URL: "http://paylater-transaction-service:8084"
+  PAYBACK_SERVICE_URL: "http://paylater-payback-service:8085"
+  REPORTING_SERVICE_URL: "http://paylater-reporting-service:8086"

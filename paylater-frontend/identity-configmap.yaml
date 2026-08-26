@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: identity-config
+  namespace: paylater-dev
+
+data:
+  HTTP_PORT: "8081"
+  DB_HOST: "mysql-service"
+  DB_PORT: "3306"
+  DB_NAME: "identity_db"
