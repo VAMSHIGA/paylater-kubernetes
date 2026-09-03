@@ -346,6 +346,15 @@ export function getLoginErrorMessage(error: unknown): {
     }
   }
 
+  // POST routed to the frontend nginx (e.g. /api/auth/login behind ingress).
+  if (error.response.status === 405) {
+    return {
+      title: 'Login failed',
+      message:
+        'API request used the wrong URL. Use same-origin paths such as /auth/login.',
+    }
+  }
+
   // Read the error message returned by the backend.
   const apiError = error.response.data as {
     error?: string

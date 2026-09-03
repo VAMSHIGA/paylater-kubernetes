@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
         - name: paylater-customer-service
-          image: paylater-customer-service:latest
-          imagePullPolicy: Never
+          image: galinkivamshi/paylater-customer-service:2026.09.02-9307833
+          imagePullPolicy: IfNotPresent
 
           ports:
             - containerPort: 8082

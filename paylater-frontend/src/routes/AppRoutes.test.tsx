@@ -179,14 +179,13 @@ describe('AppRoutes', () => {
     ).toBeInTheDocument()
   })
 
-  // Test 8: Merchant cannot access the Customers page
-  // Example: Merchant → /customers → Access Denied
-  it('denies customers page for merchant users', async () => {
+  // Test 8: Merchant is redirected away from the Customers page
+  it('redirects merchant users away from customers page', async () => {
     seedAuthStorage(createTestUser('merchant'))
     renderApp('/customers')
 
     expect(
-      await screen.findByText('Access Denied'),
+      await screen.findByText(/Here's how your business is performing/i),
     ).toBeInTheDocument()
   })
 
@@ -216,14 +215,13 @@ describe('AppRoutes', () => {
     ).toBeInTheDocument()
   })
 
-  // Test 11: Merchant cannot access the Transactions page
-  // Example: Merchant → /transactions → Access Denied
-  it('denies transactions page for merchant users', async () => {
+  // Test 11: Merchant is redirected away from the Transactions page
+  it('redirects merchant users away from transactions page', async () => {
     seedAuthStorage(createTestUser('merchant'))
     renderApp('/transactions')
 
     expect(
-      await screen.findByText('Access Denied'),
+      await screen.findByText(/Here's how your business is performing/i),
     ).toBeInTheDocument()
   })
 

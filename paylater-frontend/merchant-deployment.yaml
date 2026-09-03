@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
         - name: paylater-merchant-service
-          image: paylater-merchant-service:latest
-          imagePullPolicy: Never
+          image: galinkivamshi/paylater-merchant-service:2026.09.02-9307833
+          imagePullPolicy: IfNotPresent
 
           ports:
             - containerPort: 8083

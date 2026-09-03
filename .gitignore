@@ -31,3 +31,5 @@
 
 # Kubernetes local secrets
 **/*secret.yaml
+deploy/k3s/secrets.env
+deploy/k3s/backups/

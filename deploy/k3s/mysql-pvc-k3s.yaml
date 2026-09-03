@@ -1,0 +1,15 @@
+# K3s-compatible MySQL PVC using the built-in local-path provisioner.
+# Apply this instead of mysql-pv.yaml + manual storageClass on EC2/K3s.
+# Kind deployments can continue using paylater-frontend/mysql-pv.yaml (hostPath).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: paylater-dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi

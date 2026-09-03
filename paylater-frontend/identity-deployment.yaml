@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
         - name: paylater-identity-service
-          image: paylater-identity-service:latest
-          imagePullPolicy: Never
+          image: galinkivamshi/paylater-identity-service:2026.09.02-9307833
+          imagePullPolicy: IfNotPresent
 
           ports:
             - containerPort: 8081

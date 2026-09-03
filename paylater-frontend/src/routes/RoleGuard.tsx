@@ -2,6 +2,7 @@ import { type ReactNode } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../hooks/useAuth'
+import { getPostLoginPath } from '../services/authService'
 import type { UserRole } from '../types'
 
 export interface RoleGuardProps {
@@ -29,11 +30,7 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <p className="text-sm font-medium text-text">Access Denied</p>
-      </div>
-    )
+    return <Navigate to={getPostLoginPath(user.role)} replace />
   }
 
   return children ?? <Outlet />

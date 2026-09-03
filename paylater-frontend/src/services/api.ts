@@ -7,11 +7,24 @@ import {
 
 /**
  * Base URL for the PayLater API Gateway.
- * In local dev, defaults to /api so Vite proxies to http://localhost:8080.
+ * - Local dev: /api (Vite proxies to http://localhost:8080)
+ * - Production/K8s ingress: '' (same-origin; POST /auth/login hits the gateway)
  */
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.DEV ? '/api' : 'http://localhost:8080')
+function resolveApiBaseUrl(): string {
+  if (!import.meta.env.DEV) {
+    return ''
+  }
+
+  const configured = import.meta.env.VITE_API_BASE_URL
+
+  if (configured !== undefined && configured !== null && configured !== '') {
+    return configured
+  }
+
+  return '/api'
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
 
 function isPublicAuthRequest(url: string | undefined): boolean {
   return url === '/auth/login' || url === '/auth/register'

@@ -54,6 +54,10 @@ function renderRoleGuard(
           element={<div>Login Page</div>}
         />
 
+        <Route path="/admin" element={<div>Admin Dashboard</div>} />
+        <Route path="/customer" element={<div>Customer Dashboard</div>} />
+        <Route path="/merchant" element={<div>Merchant Dashboard</div>} />
+
       </Routes>
     </MemoryRouter>
   )
@@ -93,21 +97,21 @@ describe('RoleGuard', () => {
     ).toBeInTheDocument()
   })
 
-  // 4. Customer is denied when only Admin is allowed.
-  it('denies customer when admin is required', () => {
+  // 4. Customer is redirected when only Admin is allowed.
+  it('redirects customer when admin is required', () => {
     renderRoleGuard('customer', ['admin'])
 
     expect(
-      screen.getByText('Access Denied'),
+      screen.getByText('Customer Dashboard'),
     ).toBeInTheDocument()
   })
 
-  // 5. Merchant is denied when only Admin is allowed.
-  it('denies merchant when admin is required', () => {
+  // 5. Merchant is redirected when only Admin is allowed.
+  it('redirects merchant when admin is required', () => {
     renderRoleGuard('merchant', ['admin'])
 
     expect(
-      screen.getByText('Access Denied'),
+      screen.getByText('Merchant Dashboard'),
     ).toBeInTheDocument()
   })
 
@@ -120,12 +124,12 @@ describe('RoleGuard', () => {
     ).toBeInTheDocument()
   })
 
-  // 7. Admin is denied when only Customer is allowed.
-  it('denies admin when customer is required', () => {
+  // 7. Admin is redirected when only Customer is allowed.
+  it('redirects admin when customer is required', () => {
     renderRoleGuard('admin', ['customer'])
 
     expect(
-      screen.getByText('Access Denied'),
+      screen.getByText('Admin Dashboard'),
     ).toBeInTheDocument()
   })
 
@@ -147,12 +151,12 @@ describe('RoleGuard', () => {
     ).toBeInTheDocument()
   })
 
-  // 10. Customer is denied when only Admin OR Merchant is allowed.
-  it('denies customer for admin and merchant roles', () => {
+  // 10. Customer is redirected when only Admin OR Merchant is allowed.
+  it('redirects customer for admin and merchant roles', () => {
     renderRoleGuard('customer', ['admin', 'merchant'])
 
     expect(
-      screen.getByText('Access Denied'),
+      screen.getByText('Customer Dashboard'),
     ).toBeInTheDocument()
   })
 })

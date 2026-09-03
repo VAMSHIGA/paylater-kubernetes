@@ -22,7 +22,7 @@ spec:
         - name: paylater-api-gateway
 
           image: "{{ .Values.gateway.image }}:{{ .Values.gateway.tag }}"
-          imagePullPolicy: Never
+          imagePullPolicy: {{ .Values.gateway.imagePullPolicy | default "IfNotPresent" }}
 
           ports:
             - containerPort: 8080

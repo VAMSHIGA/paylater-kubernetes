@@ -3,8 +3,9 @@ namespace: paylater-dev
 gateway:
   replicas: 3
 
-  image: paylater-api-gateway
-  tag: v3
+  image: galinkivamshi/paylater-api-gateway
+  tag: 2026.09.02-9307833
+  imagePullPolicy: IfNotPresent
 
   resources:
     requests:
