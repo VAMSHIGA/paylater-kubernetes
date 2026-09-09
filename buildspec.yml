@@ -17,7 +17,7 @@ phases:
 
       - docker build -t paylater-identity-service -f identity-service/Dockerfile .
 
-      - docker build -t paylater-customer-service ./customer-service
+      - docker build -t paylater-customer-service -f customer-service/Dockerfile .
 
       - docker build -t paylater-merchant-service ./merchant-service
 
