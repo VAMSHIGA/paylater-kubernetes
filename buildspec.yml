@@ -10,13 +10,21 @@ phases:
   build:
     commands:
       - echo "Building PayLater Docker images..."
+
       - docker build -t paylater-api-gateway .
+
       - docker build -t paylater-frontend ./paylater-frontend
-      - docker build -t paylater-identity-service ./identity-service
+
+      - docker build -t paylater-identity-service -f identity-service/Dockerfile .
+
       - docker build -t paylater-customer-service ./customer-service
+
       - docker build -t paylater-merchant-service ./merchant-service
+
       - docker build -t paylater-transaction-service ./transaction-service
+
       - docker build -t paylater-payback-service ./payback-service
+
       - docker build -t paylater-reporting-service ./reporting-service
 
   post_build:
