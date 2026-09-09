@@ -19,13 +19,13 @@ phases:
 
       - docker build -t paylater-customer-service -f customer-service/Dockerfile .
 
-      - docker build -t paylater-merchant-service ./merchant-service
+      - docker build -t paylater-merchant-service -f merchant-service/Dockerfile .
 
-      - docker build -t paylater-transaction-service ./transaction-service
+      - docker build -t paylater-transaction-service -f transaction-service/Dockerfile .
 
-      - docker build -t paylater-payback-service ./payback-service
+      - docker build -t paylater-payback-service -f payback-service/Dockerfile .
 
-      - docker build -t paylater-reporting-service ./reporting-service
+      - docker build -t paylater-reporting-service -f reporting-service/Dockerfile .
 
   post_build:
     commands:
